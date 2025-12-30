@@ -37,7 +37,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN groupadd --system --gid 1001 nodejs
-RUN useradd --system --uid 1001 nextjs
+RUN useradd --system --uid 1001 --create-home nextjs
 
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
