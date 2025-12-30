@@ -7,6 +7,9 @@ import { formatPrice, categoryNames } from '@/lib/utils'
 import { OrderForm } from './OrderForm'
 import { Package, Snowflake, Info } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ProductPage({
   params,
 }: {

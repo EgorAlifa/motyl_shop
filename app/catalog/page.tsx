@@ -4,6 +4,9 @@ import { ProductCard } from '@/components/ProductCard'
 import { prisma } from '@/lib/prisma'
 import { categoryNames } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function CatalogPage({
   searchParams,
 }: {
