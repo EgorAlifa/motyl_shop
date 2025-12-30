@@ -6,10 +6,147 @@ set -e
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Магазин Мотыля - Deployment Script  ${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo
+
+# Check if running as root for installation
+if [ "$EUID" -ne 0 ] && ! command -v docker &> /dev/null; then
+  echo -e "${YELLOW}Docker not found. Will need sudo privileges to install.${NC}"
+fi
+
+# Function to check if command exists
+command_exists() {
+  command -v "$1" &> /dev/null
+}
+
+# Function to install Docker on Ubuntu/Debian
+install_docker() {
+  echo -e "${BLUE}Installing Docker...${NC}"
+
+  # Update package index
+  sudo apt-get update
+
+  # Install prerequisites
+  sudo apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+  # Add Docker's official GPG key
+  sudo mkdir -p /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+  # Set up repository
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  # Install Docker Engine
+  sudo apt-get update
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Add current user to docker group
+  sudo usermod -aG docker $USER
+
+  echo -e "${GREEN}Docker installed successfully!${NC}"
+  echo -e "${YELLOW}Note: You may need to log out and back in for group changes to take effect.${NC}"
+}
+
+# Function to install Docker Compose standalone (if needed)
+install_docker_compose() {
+  echo -e "${BLUE}Installing Docker Compose...${NC}"
+
+  # Get latest version
+  COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
+
+  # Download and install
+  sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+
+  echo -e "${GREEN}Docker Compose installed successfully!${NC}"
+}
+
+# Check and install dependencies
+echo -e "${BLUE}Checking dependencies...${NC}"
+echo
+
+# Check for required tools
+MISSING_DEPS=()
+
+if ! command_exists git; then
+  MISSING_DEPS+=("git")
+fi
+
+if ! command_exists curl; then
+  MISSING_DEPS+=("curl")
+fi
+
+if ! command_exists openssl; then
+  MISSING_DEPS+=("openssl")
+fi
+
+# Install missing basic dependencies
+if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
+  echo -e "${YELLOW}Installing missing dependencies: ${MISSING_DEPS[*]}${NC}"
+  sudo apt-get update
+  sudo apt-get install -y "${MISSING_DEPS[@]}"
+  echo -e "${GREEN}Dependencies installed!${NC}"
+  echo
+fi
+
+# Check for Docker
+if ! command_exists docker; then
+  echo -e "${YELLOW}Docker is not installed.${NC}"
+  read -p "Do you want to install Docker automatically? (y/n): " install_docker_answer
+  if [[ $install_docker_answer =~ ^[Yy]$ ]]; then
+    install_docker
+    echo
+  else
+    echo -e "${RED}Docker is required to run this application.${NC}"
+    echo -e "${YELLOW}Please install Docker manually: https://docs.docker.com/engine/install/ubuntu/${NC}"
+    exit 1
+  fi
+else
+  echo -e "${GREEN}✓ Docker is installed${NC}"
+fi
+
+# Check for Docker Compose
+if ! command_exists docker-compose && ! docker compose version &> /dev/null; then
+  echo -e "${YELLOW}Docker Compose is not installed.${NC}"
+  read -p "Do you want to install Docker Compose automatically? (y/n): " install_compose_answer
+  if [[ $install_compose_answer =~ ^[Yy]$ ]]; then
+    install_docker_compose
+    echo
+  else
+    echo -e "${RED}Docker Compose is required to run this application.${NC}"
+    echo -e "${YELLOW}Please install Docker Compose manually: https://docs.docker.com/compose/install/${NC}"
+    exit 1
+  fi
+else
+  echo -e "${GREEN}✓ Docker Compose is installed${NC}"
+fi
+
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+  echo -e "${YELLOW}Docker daemon is not running. Starting Docker...${NC}"
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  echo -e "${GREEN}Docker daemon started!${NC}"
+else
+  echo -e "${GREEN}✓ Docker daemon is running${NC}"
+fi
+
+echo
+echo -e "${GREEN}All dependencies are satisfied!${NC}"
+echo
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  Starting Configuration  ${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo
 
@@ -118,14 +255,22 @@ EOF
 echo -e "${GREEN}.env file created successfully!${NC}"
 echo
 
+# Determine docker-compose command
+if command_exists docker-compose; then
+  DOCKER_COMPOSE="docker-compose"
+else
+  DOCKER_COMPOSE="docker compose"
+fi
+
 # Stop existing containers
 echo -e "${GREEN}Step 3: Stopping existing containers (if any)...${NC}"
-docker-compose down 2>/dev/null || true
+$DOCKER_COMPOSE down 2>/dev/null || true
 echo
 
 # Build and start containers
 echo -e "${GREEN}Step 4: Building and starting Docker containers...${NC}"
-docker-compose up -d --build
+echo -e "${YELLOW}This may take several minutes on first run...${NC}"
+$DOCKER_COMPOSE up -d --build
 
 echo
 echo -e "${GREEN}========================================${NC}"
@@ -156,9 +301,10 @@ echo -e "- Place them in ${GREEN}cert/fullchain.crt${NC} and ${GREEN}cert/privat
 echo
 echo -e "${YELLOW}Checking container status...${NC}"
 echo
-docker-compose ps
+$DOCKER_COMPOSE ps
 echo
-echo -e "${GREEN}To view logs: ${NC}docker-compose logs -f"
-echo -e "${GREEN}To stop: ${NC}docker-compose down"
-echo -e "${GREEN}To restart: ${NC}docker-compose restart"
+echo -e "${GREEN}To view logs: ${NC}$DOCKER_COMPOSE logs -f"
+echo -e "${GREEN}To stop: ${NC}$DOCKER_COMPOSE down"
+echo -e "${GREEN}To restart: ${NC}$DOCKER_COMPOSE restart"
+echo -e "${GREEN}Management menu: ${NC}./manage.sh"
 echo
