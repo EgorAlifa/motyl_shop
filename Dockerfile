@@ -49,9 +49,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 
-# Install Prisma CLI for running migrations
+# Install Prisma CLI and tsx for running migrations and seed
 # We need to do this as root before switching to nextjs user
-RUN npm install -g prisma@5.22.0
+RUN npm install -g prisma@5.22.0 tsx@4.19.2
 
 USER nextjs
 
