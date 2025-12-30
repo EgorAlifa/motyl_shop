@@ -100,8 +100,8 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
   echo
 fi
 
-# Track if Docker was just installed
-DOCKER_JUST_INSTALLED=false
+# Track if we need to use sudo for Docker
+NEED_DOCKER_SUDO=false
 
 # Check for Docker
 if ! command_exists docker; then
@@ -111,7 +111,7 @@ if ! command_exists docker; then
   install_docker_answer=$(echo "$install_docker_answer" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
   if [[ "$install_docker_answer" == "y" || "$install_docker_answer" == "yes" ]]; then
     install_docker
-    DOCKER_JUST_INSTALLED=true
+    NEED_DOCKER_SUDO=true
     # After installing Docker, we need to use newgrp or sg to activate the group
     # For now, we'll use sudo for the first run
     echo -e "${YELLOW}Using sudo for Docker commands in this session...${NC}"
@@ -123,6 +123,16 @@ if ! command_exists docker; then
   fi
 else
   echo -e "${GREEN}✓ Docker is installed${NC}"
+
+  # Check if current user can use Docker without sudo
+  if ! docker info &> /dev/null 2>&1; then
+    echo -e "${YELLOW}Current user cannot access Docker without sudo.${NC}"
+    echo -e "${YELLOW}Adding user to docker group...${NC}"
+    sudo usermod -aG docker $USER
+    NEED_DOCKER_SUDO=true
+    echo -e "${YELLOW}Using sudo for Docker commands in this session...${NC}"
+    echo
+  fi
 fi
 
 # Check for Docker Compose
@@ -145,7 +155,7 @@ fi
 
 # Check if Docker daemon is running
 DOCKER_CMD="docker"
-if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+if [ "$NEED_DOCKER_SUDO" = true ]; then
   DOCKER_CMD="sudo docker"
 fi
 
@@ -278,8 +288,8 @@ else
   DOCKER_COMPOSE="docker compose"
 fi
 
-# Add sudo prefix if Docker was just installed
-if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+# Add sudo prefix if needed
+if [ "$NEED_DOCKER_SUDO" = true ]; then
   DOCKER_COMPOSE="sudo $DOCKER_COMPOSE"
 fi
 
@@ -329,7 +339,7 @@ echo -e "${GREEN}To stop: ${NC}$DOCKER_COMPOSE down"
 echo -e "${GREEN}To restart: ${NC}$DOCKER_COMPOSE restart"
 echo -e "${GREEN}Management menu: ${NC}./manage.sh"
 
-if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+if [ "$NEED_DOCKER_SUDO" = true ]; then
   echo
   echo -e "${YELLOW}========================================${NC}"
   echo -e "${YELLOW}Important: Docker group membership${NC}"
