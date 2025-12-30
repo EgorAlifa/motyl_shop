@@ -100,12 +100,21 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
   echo
 fi
 
+# Track if Docker was just installed
+DOCKER_JUST_INSTALLED=false
+
 # Check for Docker
 if ! command_exists docker; then
   echo -e "${YELLOW}Docker is not installed.${NC}"
   read -p "Do you want to install Docker automatically? (y/n): " install_docker_answer
-  if [[ $install_docker_answer =~ ^[Yy]$ ]]; then
+  # Trim whitespace and convert to lowercase
+  install_docker_answer=$(echo "$install_docker_answer" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+  if [[ "$install_docker_answer" == "y" || "$install_docker_answer" == "yes" ]]; then
     install_docker
+    DOCKER_JUST_INSTALLED=true
+    # After installing Docker, we need to use newgrp or sg to activate the group
+    # For now, we'll use sudo for the first run
+    echo -e "${YELLOW}Using sudo for Docker commands in this session...${NC}"
     echo
   else
     echo -e "${RED}Docker is required to run this application.${NC}"
@@ -117,10 +126,12 @@ else
 fi
 
 # Check for Docker Compose
-if ! command_exists docker-compose && ! docker compose version &> /dev/null; then
+if ! command_exists docker-compose && ! docker compose version &> /dev/null 2>&1; then
   echo -e "${YELLOW}Docker Compose is not installed.${NC}"
   read -p "Do you want to install Docker Compose automatically? (y/n): " install_compose_answer
-  if [[ $install_compose_answer =~ ^[Yy]$ ]]; then
+  # Trim whitespace and convert to lowercase
+  install_compose_answer=$(echo "$install_compose_answer" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+  if [[ "$install_compose_answer" == "y" || "$install_compose_answer" == "yes" ]]; then
     install_docker_compose
     echo
   else
@@ -133,7 +144,12 @@ else
 fi
 
 # Check if Docker daemon is running
-if ! docker info &> /dev/null; then
+DOCKER_CMD="docker"
+if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+  DOCKER_CMD="sudo docker"
+fi
+
+if ! $DOCKER_CMD info &> /dev/null; then
   echo -e "${YELLOW}Docker daemon is not running. Starting Docker...${NC}"
   sudo systemctl start docker
   sudo systemctl enable docker
@@ -262,6 +278,11 @@ else
   DOCKER_COMPOSE="docker compose"
 fi
 
+# Add sudo prefix if Docker was just installed
+if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+  DOCKER_COMPOSE="sudo $DOCKER_COMPOSE"
+fi
+
 # Stop existing containers
 echo -e "${GREEN}Step 3: Stopping existing containers (if any)...${NC}"
 $DOCKER_COMPOSE down 2>/dev/null || true
@@ -307,4 +328,18 @@ echo -e "${GREEN}To view logs: ${NC}$DOCKER_COMPOSE logs -f"
 echo -e "${GREEN}To stop: ${NC}$DOCKER_COMPOSE down"
 echo -e "${GREEN}To restart: ${NC}$DOCKER_COMPOSE restart"
 echo -e "${GREEN}Management menu: ${NC}./manage.sh"
+
+if [ "$DOCKER_JUST_INSTALLED" = true ]; then
+  echo
+  echo -e "${YELLOW}========================================${NC}"
+  echo -e "${YELLOW}Important: Docker group membership${NC}"
+  echo -e "${YELLOW}========================================${NC}"
+  echo -e "Your user has been added to the 'docker' group."
+  echo -e "To use Docker without sudo in future sessions:"
+  echo -e "1. Log out and log back in, OR"
+  echo -e "2. Run: ${GREEN}newgrp docker${NC}"
+  echo -e ""
+  echo -e "For this session, Docker commands use sudo automatically."
+fi
+
 echo

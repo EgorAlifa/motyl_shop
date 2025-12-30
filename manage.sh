@@ -13,6 +13,17 @@ else
   DOCKER_COMPOSE="docker compose"
 fi
 
+# Check if we need sudo for docker
+if ! docker info &> /dev/null 2>&1; then
+  # Try with sudo
+  if sudo docker info &> /dev/null 2>&1; then
+    echo -e "${YELLOW}Note: Using sudo for Docker commands${NC}"
+    echo -e "${YELLOW}To avoid this, log out and back in after Docker installation${NC}"
+    echo
+    DOCKER_COMPOSE="sudo $DOCKER_COMPOSE"
+  fi
+fi
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Управление магазином Мотыля${NC}"
 echo -e "${BLUE}========================================${NC}"
