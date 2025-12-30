@@ -42,7 +42,7 @@ services:
       NODE_TLS_REJECT_UNAUTHORIZED: '0'
     networks:
       - motyl_network
-    command: sh -c "prisma db push && prisma db seed && node server.js"
+    command: sh -c "prisma db push --skip-generate && prisma db seed && node server.js"
 
   nginx:
     image: nginx:alpine
