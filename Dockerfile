@@ -17,7 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN node node_modules/.bin/prisma generate
 
 # Ensure public directory exists
 RUN mkdir -p public
