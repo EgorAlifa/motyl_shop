@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: motyl_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: motyluser
+      POSTGRES_PASSWORD: motylpass
+      POSTGRES_DB: motylshop
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - motyl_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U motyluser -d motylshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: motyl_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://motyluser:motylpass@postgres:5432/motylshop
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key-change-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
+      NODE_TLS_REJECT_UNAUTHORIZED: '0'
+    networks:
+      - motyl_network
+    command: sh -c "npx prisma db push && npx prisma db seed && node server.js"
+
+  nginx:
+    image: nginx:alpine
+    container_name: motyl_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./cert:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - motyl_network
+
+volumes:
+  postgres_data:
+
+networks:
+  motyl_network:
+    driver: bridge

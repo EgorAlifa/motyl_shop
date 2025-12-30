@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String   @db.Text
+  price       Float
+  stock       Int
+  unit        String   @default("г") // грамм
+  minOrder    Int      @default(50)  // минимальный заказ
+  image       String?
+  category    Category @default(MOTYL)
+  storage     String   @db.Text // условия хранения
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+}
+
+enum Category {
+  MOTYL      // Мотыль
+  KORETRA    // Коретра
+  ACCESSORIES // Аксессуары (контейнеры, хранение)
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  deliveryAddress String  @db.Text
+  deliveryDate    DateTime?
+  comment         String?  @db.Text
+  totalAmount     Float
+  status          OrderStatus @default(NEW)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items       OrderItem[]
+}
+
+enum OrderStatus {
+  NEW         // Новая заявка
+  PROCESSING  // В обработке
+  CONFIRMED   // Подтверждена
+  SHIPPED     // Отправлена
+  DELIVERED   // Доставлена
+  CANCELLED   // Отменена
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
