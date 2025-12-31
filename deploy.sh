@@ -322,7 +322,7 @@ echo
 echo -e "${YELLOW}Step 5: Waiting for Keycloak to be ready (this may take 1-2 minutes)...${NC}"
 KEYCLOAK_READY=0
 for i in {1..60}; do
-  if $DOCKER_CMD exec motyl_keycloak curl -sf http://localhost:8080/auth/health/ready > /dev/null 2>&1; then
+  if $DOCKER_CMD exec motyl_app curl -sf http://keycloak:8080/auth/realms/master > /dev/null 2>&1; then
     KEYCLOAK_READY=1
     break
   fi
@@ -337,18 +337,94 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
 
   # Initialize Keycloak realm
   echo -e "${GREEN}Step 6: Initializing Keycloak realm and client...${NC}"
-  $DOCKER_CMD exec -e KEYCLOAK_URL=http://localhost:8080/auth \
+  $DOCKER_CMD exec -e KEYCLOAK_URL=http://keycloak:8080/auth \
     -e KEYCLOAK_ADMIN=admin \
     -e KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD \
     -e KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     motyl_app bash /app/scripts/init-keycloak.sh
 
   echo
-  echo -e "${GREEN}✓ Keycloak configured successfully!${NC}"
+  echo -e "${GREEN}✓ Keycloak realm configured successfully!${NC}"
+
+  # Create first super admin user automatically
+  echo
+  echo -e "${GREEN}Step 7: Creating first super admin user...${NC}"
+
+  # Get admin token
+  ADMIN_TOKEN=$($DOCKER_CMD exec motyl_app curl -s -X POST "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=admin" \
+    -d "password=$KEYCLOAK_ADMIN_PASSWORD" \
+    -d "grant_type=password" \
+    -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+
+  if [ -n "$ADMIN_TOKEN" ] && [ "$ADMIN_TOKEN" != "null" ]; then
+    # Create user
+    USER_ID=$($DOCKER_CMD exec motyl_app curl -s -X POST "http://keycloak:8080/auth/admin/realms/motyl-shop/users" \
+      -H "Authorization: Bearer $ADMIN_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "username": "'"$ADMIN_EMAIL"'",
+        "email": "'"$ADMIN_EMAIL"'",
+        "emailVerified": true,
+        "enabled": true,
+        "firstName": "Super",
+        "lastName": "Admin"
+      }' -w "%{http_code}" -o /dev/null 2>&1)
+
+    if [ "$USER_ID" = "201" ] || [ "$USER_ID" = "409" ]; then
+      # Get user ID
+      USER_ID=$($DOCKER_CMD exec motyl_app curl -s -X GET "http://keycloak:8080/auth/admin/realms/motyl-shop/users?email=$ADMIN_EMAIL" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4)
+
+      if [ -n "$USER_ID" ]; then
+        # Set password
+        $DOCKER_CMD exec motyl_app curl -s -X PUT "http://keycloak:8080/auth/admin/realms/motyl-shop/users/$USER_ID/reset-password" \
+          -H "Authorization: Bearer $ADMIN_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "type": "password",
+            "value": "'"$ADMIN_PASSWORD"'",
+            "temporary": false
+          }' > /dev/null 2>&1
+
+        # Get super-admin role ID
+        ROLE_ID=$($DOCKER_CMD exec motyl_app curl -s -X GET "http://keycloak:8080/auth/admin/realms/motyl-shop/roles/super-admin" \
+          -H "Authorization: Bearer $ADMIN_TOKEN" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+
+        if [ -n "$ROLE_ID" ]; then
+          # Assign super-admin role
+          $DOCKER_CMD exec motyl_app curl -s -X POST "http://keycloak:8080/auth/admin/realms/motyl-shop/users/$USER_ID/role-mappings/realm" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '[{
+              "id": "'"$ROLE_ID"'",
+              "name": "super-admin"
+            }]' > /dev/null 2>&1
+
+          echo -e "${GREEN}✓ Super admin user created successfully!${NC}"
+          echo
+          echo -e "${GREEN}Вы можете сразу войти в админку:${NC}"
+          echo -e "  URL: ${GREEN}https://$DOMAIN/admin${NC}"
+          echo -e "  Email: ${GREEN}$ADMIN_EMAIL${NC}"
+          echo -e "  Пароль: ${GREEN}$ADMIN_PASSWORD${NC}"
+        else
+          echo -e "${YELLOW}⚠ Не удалось назначить роль super-admin.${NC}"
+        fi
+      else
+        echo -e "${YELLOW}⚠ Не удалось получить ID пользователя.${NC}"
+      fi
+    else
+      echo -e "${YELLOW}⚠ Не удалось создать пользователя (HTTP: $USER_ID).${NC}"
+    fi
+  else
+    echo -e "${YELLOW}⚠ Не удалось получить токен администратора Keycloak.${NC}"
+    echo -e "${YELLOW}Создайте первого пользователя вручную (см. инструкцию ниже).${NC}"
+  fi
 else
   echo -e "${YELLOW}⚠ Keycloak is taking longer than expected to start.${NC}"
   echo -e "${YELLOW}You can initialize it manually later with:${NC}"
-  echo -e "${GREEN}docker exec -it motyl_app bash /app/scripts/init-keycloak.sh${NC}"
+  echo -e "${GREEN}$DOCKER_CMD exec motyl_app bash /app/scripts/init-keycloak.sh${NC}"
 fi
 
 echo
