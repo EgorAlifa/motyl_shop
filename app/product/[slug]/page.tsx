@@ -34,12 +34,20 @@ export default async function ProductPage({
               {/* Product Image */}
               <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
                 {product.image ? (
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
+                  product.image.startsWith('/uploads/') ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  )
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
                     <span className="text-9xl">🦐</span>
