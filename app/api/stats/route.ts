@@ -22,14 +22,14 @@ export async function GET() {
     // Total COMPLETED orders (успешные заявки)
     const totalCompletedOrders = await prisma.order.count({
       where: {
-        status: 'COMPLETED',
+        status: 'DELIVERED',
       },
     })
 
     // COMPLETED orders in last 30 days
     const recentCompletedOrders = await prisma.order.count({
       where: {
-        status: 'COMPLETED',
+        status: 'DELIVERED',
         createdAt: {
           gte: thirtyDaysAgo,
         },
@@ -39,7 +39,7 @@ export async function GET() {
     // Total revenue (ТОЛЬКО из выполненных заявок)
     const completedOrders = await prisma.order.findMany({
       where: {
-        status: 'COMPLETED',
+        status: 'DELIVERED',
       },
       select: { totalAmount: true },
     })
@@ -48,7 +48,7 @@ export async function GET() {
     // Revenue in last 30 days (ТОЛЬКО из выполненных заявок)
     const recentCompletedOrdersWithAmount = await prisma.order.findMany({
       where: {
-        status: 'COMPLETED',
+        status: 'DELIVERED',
         createdAt: {
           gte: thirtyDaysAgo,
         },
@@ -116,7 +116,7 @@ export async function GET() {
 
       const completedCount = await prisma.order.count({
         where: {
-          status: 'COMPLETED',
+          status: 'DELIVERED',
           createdAt: {
             gte: dayStart,
             lte: dayEnd,
@@ -126,7 +126,7 @@ export async function GET() {
 
       const dayCompletedOrders = await prisma.order.findMany({
         where: {
-          status: 'COMPLETED',
+          status: 'DELIVERED',
           createdAt: {
             gte: dayStart,
             lte: dayEnd,
