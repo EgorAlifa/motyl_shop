@@ -1,18 +1,32 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
+import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { email, password, masterPassword } = body
+    const { email, password, name, permissions } = body
 
-    // Проверяем мастер-пароль (можно настроить через переменные окружения)
-    const MASTER_PASSWORD = process.env.ADMIN_MASTER_PASSWORD || 'change-me-in-production'
+    // Проверяем авторизацию текущего пользователя
+    const cookieStore = await cookies()
+    const adminId = cookieStore.get('admin_id')?.value
 
-    if (masterPassword !== MASTER_PASSWORD) {
+    if (!adminId) {
       return NextResponse.json(
-        { error: 'Неверный мастер-пароль' },
+        { error: 'Необходима авторизация' },
+        { status: 401 }
+      )
+    }
+
+    // Проверяем, что текущий пользователь - суперадмин
+    const currentAdmin = await prisma.admin.findUnique({
+      where: { id: adminId },
+    })
+
+    if (!currentAdmin || currentAdmin.role !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Недостаточно прав. Только суперадмин может создавать администраторов.' },
         { status: 403 }
       )
     }
@@ -37,6 +51,10 @@ export async function POST(request: Request) {
       data: {
         email,
         password: hashedPassword,
+        name: name || email,
+        role: 'ADMIN',
+        permissions: permissions || [],
+        isBlocked: false,
       },
     })
 
@@ -45,6 +63,8 @@ export async function POST(request: Request) {
       admin: {
         id: admin.id,
         email: admin.email,
+        name: admin.name,
+        permissions: admin.permissions,
       },
     })
   } catch (error) {

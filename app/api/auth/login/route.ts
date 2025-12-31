@@ -6,20 +6,38 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
-    const isValid = await verifyAdmin(email, password)
+    const admin = await verifyAdmin(email, password)
 
-    if (!isValid) {
+    if (!admin) {
       return NextResponse.json(
-        { error: 'Неверный email или пароль' },
+        { error: 'Неверный email или пароль, либо аккаунт заблокирован' },
         { status: 401 }
       )
     }
 
-    // Set a simple session cookie
-    const response = NextResponse.json({ success: true })
+    // Set session cookies
+    const response = NextResponse.json({
+      success: true,
+      admin: {
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        permissions: admin.permissions,
+      }
+    })
 
     const cookieStore = await cookies()
+
+    // Session cookie
     cookieStore.set('admin-session', 'authenticated', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+
+    // Admin ID cookie (для проверки прав)
+    cookieStore.set('admin_id', admin.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

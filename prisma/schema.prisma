@@ -73,10 +73,19 @@ model OrderItem {
 }
 
 model Admin {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String     @id @default(cuid())
+  email       String     @unique
+  password    String
+  name        String
+  role        AdminRole  @default(ADMIN)
+  permissions String[]   // Массив прав: 'dashboard', 'products', 'orders', 'admins'
+  isBlocked   Boolean    @default(false)
+  lastLogin   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum AdminRole {
+  SUPER_ADMIN  // Главный администратор (полный доступ)
+  ADMIN        // Обычный администратор (ограниченный доступ)
 }

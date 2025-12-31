@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Fish, LayoutDashboard, Package, ShoppingCart, UserPlus, LogOut } from 'lucide-react'
@@ -15,27 +16,42 @@ export function AdminNav() {
     router.refresh()
   }
 
+  const [adminRole, setAdminRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Получаем информацию об админе из sessionStorage
+    const adminData = sessionStorage.getItem('adminData')
+    if (adminData) {
+      const data = JSON.parse(adminData)
+      setAdminRole(data.role)
+    }
+  }, [])
+
   const links = [
     {
       href: '/admin',
       label: 'Дашборд',
       icon: LayoutDashboard,
+      permission: 'dashboard',
     },
     {
       href: '/admin/products',
       label: 'Товары',
       icon: Package,
+      permission: 'products',
     },
     {
       href: '/admin/orders',
       label: 'Заявки',
       icon: ShoppingCart,
+      permission: 'orders',
     },
-    {
-      href: '/admin/create-admin',
-      label: 'Админы',
+    ...(adminRole === 'SUPER_ADMIN' ? [{
+      href: '/admin/manage-admins',
+      label: 'Администраторы',
       icon: UserPlus,
-    },
+      permission: 'admins',
+    }] : []),
   ]
 
   return (

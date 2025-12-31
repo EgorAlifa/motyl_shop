@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Starting seed...')
 
-  // Create admin user
+  // Create super admin user
   const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10)
   const admin = await prisma.admin.upsert({
     where: { email: process.env.ADMIN_EMAIL || 'admin@motyl-shop.ru' },
@@ -14,10 +14,13 @@ async function main() {
     create: {
       email: process.env.ADMIN_EMAIL || 'admin@motyl-shop.ru',
       password: adminPassword,
-      name: 'Администратор',
+      name: 'Главный администратор',
+      role: 'SUPER_ADMIN',
+      permissions: ['dashboard', 'products', 'orders', 'admins'], // Полный доступ
+      isBlocked: false,
     },
   })
-  console.log('Admin created:', admin.email)
+  console.log('Super admin created:', admin.email)
 
   // Create products
   const products = [

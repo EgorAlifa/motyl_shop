@@ -29,6 +29,11 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Ошибка входа')
       }
 
+      // Сохраняем данные админа в sessionStorage
+      if (data.admin) {
+        sessionStorage.setItem('adminData', JSON.stringify(data.admin))
+      }
+
       router.push('/admin')
       router.refresh()
     } catch (err: any) {
