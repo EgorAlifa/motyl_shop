@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Fish, LayoutDashboard, Package, ShoppingCart, UserPlus, LogOut, Menu, X, ExternalLink } from 'lucide-react'
+import { Fish, LayoutDashboard, Package, ShoppingCart, UserPlus, LogOut, Menu, X, ExternalLink, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function AdminNav() {
@@ -20,13 +20,13 @@ export function AdminNav() {
   const [adminRole, setAdminRole] = useState<string | null>(null)
 
   useEffect(() => {
-    // Получаем информацию об админе из sessionStorage
+    // Получаем информацию об админе из sessionStorage при каждом изменении роута
     const adminData = sessionStorage.getItem('adminData')
     if (adminData) {
       const data = JSON.parse(adminData)
       setAdminRole(data.role)
     }
-  }, [])
+  }, [pathname]) // Добавлена зависимость от pathname
 
   // Закрываем меню при смене маршрута
   useEffect(() => {
@@ -52,12 +52,22 @@ export function AdminNav() {
       icon: ShoppingCart,
       permission: 'orders',
     },
-    ...(adminRole === 'SUPER_ADMIN' ? [{
-      href: '/admin/manage-admins',
-      label: 'Администраторы',
-      icon: UserPlus,
-      permission: 'admins',
-    }] : []),
+    ...(adminRole === 'SUPER_ADMIN'
+      ? [
+          {
+            href: '/admin/manage-admins',
+            label: 'Администраторы',
+            icon: UserPlus,
+            permission: 'admins',
+          },
+          {
+            href: '/admin/keycloak-users',
+            label: 'Keycloak',
+            icon: Shield,
+            permission: 'keycloak',
+          },
+        ]
+      : []),
   ]
 
   return (
