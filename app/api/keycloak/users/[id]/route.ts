@@ -13,9 +13,9 @@ const updateUserSchema = z.object({
 
 // DELETE /api/keycloak/users/[id] - удалить пользователя
 export const DELETE = withSuperAdmin(
-  async (request: NextRequest, user, { params }: { params: { id: string } }) => {
+  async (request: NextRequest, user, context) => {
     try {
-      const { id } = params
+      const { id } = context!.params
 
       await deleteKeycloakUser(id)
 
@@ -35,9 +35,9 @@ export const DELETE = withSuperAdmin(
 
 // PATCH /api/keycloak/users/[id] - обновить пользователя
 export const PATCH = withSuperAdmin(
-  async (request: NextRequest, user, { params }: { params: { id: string } }) => {
+  async (request: NextRequest, user, context) => {
     try {
-      const { id } = params
+      const { id } = context!.params
       const body = await request.json()
       const validatedData = updateUserSchema.parse(body)
 
