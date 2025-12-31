@@ -22,12 +22,20 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="bg-white rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 h-full flex flex-col overflow-hidden border border-gray-100 group-hover:-translate-y-1">
         <div className="relative h-56 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
           {product.image ? (
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
-            />
+            product.image.startsWith('/uploads/') ? (
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+            ) : (
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                className="object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+            )
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
               <span className="text-7xl">🦐</span>

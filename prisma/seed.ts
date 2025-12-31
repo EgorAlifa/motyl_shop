@@ -7,12 +7,18 @@ async function main() {
   console.log('Starting seed...')
 
   // Create super admin user
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.ru'
   const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10)
+
   const admin = await prisma.admin.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@motyl-shop.ru' },
-    update: {},
+    where: { email: adminEmail },
+    update: {
+      // Обновляем role на SUPER_ADMIN если уже существует
+      role: 'SUPER_ADMIN',
+      permissions: ['dashboard', 'products', 'orders', 'admins'],
+    },
     create: {
-      email: process.env.ADMIN_EMAIL || 'admin@motyl-shop.ru',
+      email: adminEmail,
       password: adminPassword,
       name: 'Главный администратор',
       role: 'SUPER_ADMIN',

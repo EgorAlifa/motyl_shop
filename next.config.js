@@ -11,6 +11,10 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // Disable image optimization for local uploads
+    unoptimized: false,
+    // Allow local paths
+    domains: [],
   },
 }
 

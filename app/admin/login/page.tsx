@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>По умолчанию:</p>
           <p className="font-mono text-xs mt-1">
-            Email: admin@motyl-shop.ru
+            Email: admin@admin.ru
             <br />
             Пароль: admin123
           </p>
