@@ -8,6 +8,8 @@ import { TrendingUp, ShoppingCart, DollarSign, Package } from 'lucide-react'
 interface Stats {
   totalOrders: number
   recentOrders: number
+  totalCompletedOrders: number
+  recentCompletedOrders: number
   totalRevenue: number
   recentRevenue: number
   ordersByStatus: Array<{ status: string; _count: { status: number } }>
@@ -19,6 +21,7 @@ interface Stats {
   dailyOrders: Array<{
     date: string
     orders: number
+    completedOrders: number
     revenue: number
   }>
 }
@@ -72,9 +75,9 @@ export function AnalyticsDashboard() {
           <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
             {stats.recentOrders}
           </div>
-          <div className="text-sm font-semibold text-gray-700 mt-2">Заявок за 30 дней</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">Всего заявок за 30 дней</div>
           <div className="text-xs text-gray-500 mt-1">
-            Всего: {stats.totalOrders}
+            Выполнено: {stats.recentCompletedOrders} • Всего: {stats.totalOrders}
           </div>
         </div>
 
@@ -89,7 +92,7 @@ export function AnalyticsDashboard() {
           </div>
           <div className="text-sm font-semibold text-gray-700 mt-2">Выручка за 30 дней</div>
           <div className="text-xs text-gray-500 mt-1">
-            Всего: {formatPrice(stats.totalRevenue)}
+            Из {stats.recentCompletedOrders} выполненных • Всего: {formatPrice(stats.totalRevenue)}
           </div>
         </div>
 
@@ -100,13 +103,13 @@ export function AnalyticsDashboard() {
             </div>
           </div>
           <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
-            {stats.recentOrders > 0
-              ? formatPrice(stats.recentRevenue / stats.recentOrders)
+            {stats.recentCompletedOrders > 0
+              ? formatPrice(stats.recentRevenue / stats.recentCompletedOrders)
               : formatPrice(0)}
           </div>
           <div className="text-sm font-semibold text-gray-700 mt-2">Средний чек</div>
           <div className="text-xs text-gray-500 mt-1">
-            За последние 30 дней
+            По выполненным заявкам за 30 дней
           </div>
         </div>
 
@@ -152,8 +155,16 @@ export function AnalyticsDashboard() {
               <Line
                 type="monotone"
                 dataKey="orders"
-                stroke="#3b82f6"
-                name="Заявки"
+                stroke="#94a3b8"
+                name="Всего заявок"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+              />
+              <Line
+                type="monotone"
+                dataKey="completedOrders"
+                stroke="#10b981"
+                name="Выполнено"
                 strokeWidth={2}
               />
             </LineChart>

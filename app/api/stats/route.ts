@@ -7,10 +7,10 @@ export async function GET() {
     const now = new Date()
     const thirtyDaysAgo = subDays(now, 30)
 
-    // Total orders
+    // Total orders (all statuses)
     const totalOrders = await prisma.order.count()
 
-    // Orders in last 30 days
+    // Orders in last 30 days (all statuses)
     const recentOrders = await prisma.order.count({
       where: {
         createdAt: {
@@ -19,22 +19,43 @@ export async function GET() {
       },
     })
 
-    // Total revenue
-    const orders = await prisma.order.findMany({
+    // Total COMPLETED orders (успешные заявки)
+    const totalCompletedOrders = await prisma.order.count({
+      where: {
+        status: 'COMPLETED',
+      },
+    })
+
+    // COMPLETED orders in last 30 days
+    const recentCompletedOrders = await prisma.order.count({
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+    })
+
+    // Total revenue (ТОЛЬКО из выполненных заявок)
+    const completedOrders = await prisma.order.findMany({
+      where: {
+        status: 'COMPLETED',
+      },
       select: { totalAmount: true },
     })
-    const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0)
+    const totalRevenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0)
 
-    // Revenue in last 30 days
-    const recentOrdersWithAmount = await prisma.order.findMany({
+    // Revenue in last 30 days (ТОЛЬКО из выполненных заявок)
+    const recentCompletedOrdersWithAmount = await prisma.order.findMany({
       where: {
+        status: 'COMPLETED',
         createdAt: {
           gte: thirtyDaysAgo,
         },
       },
       select: { totalAmount: true },
     })
-    const recentRevenue = recentOrdersWithAmount.reduce(
+    const recentRevenue = recentCompletedOrdersWithAmount.reduce(
       (sum, order) => sum + order.totalAmount,
       0
     )
@@ -93,8 +114,19 @@ export async function GET() {
         },
       })
 
-      const dayOrders = await prisma.order.findMany({
+      const completedCount = await prisma.order.count({
         where: {
+          status: 'COMPLETED',
+          createdAt: {
+            gte: dayStart,
+            lte: dayEnd,
+          },
+        },
+      })
+
+      const dayCompletedOrders = await prisma.order.findMany({
+        where: {
+          status: 'COMPLETED',
           createdAt: {
             gte: dayStart,
             lte: dayEnd,
@@ -103,11 +135,12 @@ export async function GET() {
         select: { totalAmount: true },
       })
 
-      const revenue = dayOrders.reduce((sum, order) => sum + order.totalAmount, 0)
+      const revenue = dayCompletedOrders.reduce((sum, order) => sum + order.totalAmount, 0)
 
       dailyOrders.push({
         date: date.toISOString().split('T')[0],
         orders: count,
+        completedOrders: completedCount,
         revenue,
       })
     }
@@ -115,6 +148,8 @@ export async function GET() {
     return NextResponse.json({
       totalOrders,
       recentOrders,
+      totalCompletedOrders,
+      recentCompletedOrders,
       totalRevenue,
       recentRevenue,
       ordersByStatus,
