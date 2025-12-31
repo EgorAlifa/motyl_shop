@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdmin } from '@/lib/auth'
-import { createSessionToken } from '@/lib/keycloak'
+import { loginWithKeycloak } from '@/lib/keycloak-auth'
 import { requireAuthRateLimit } from '@/lib/api-auth'
 import { cookies } from 'next/headers'
 
@@ -14,45 +13,33 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = await request.json()
 
-    const admin = await verifyAdmin(email, password)
+    // Авторизация через Keycloak
+    const loginResult = await loginWithKeycloak(email, password)
 
-    if (!admin) {
+    if (!loginResult.success || !loginResult.admin || !loginResult.token) {
       return NextResponse.json(
-        { error: 'Неверный email или пароль, либо аккаунт заблокирован' },
+        { error: loginResult.error || 'Неверный email или пароль' },
         { status: 401 }
       )
     }
 
-    // Создаем JWT токен
-    const token = await createSessionToken({
-      id: admin.id,
-      email: admin.email,
-      role: admin.role,
-      permissions: admin.permissions,
-    })
-
     // Set session cookies
     const response = NextResponse.json({
       success: true,
-      admin: {
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        permissions: admin.permissions,
-      },
+      admin: loginResult.admin,
     })
 
     const cookieStore = await cookies()
 
     // JWT токен в httpOnly cookie
-    cookieStore.set('auth-token', token, {
+    cookieStore.set('auth-token', loginResult.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
-    // Backward compatibility - оставляем старые cookies
+    // Backward compatibility - оставляем старые cookies для админки
     cookieStore.set('admin-session', 'authenticated', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -60,7 +47,7 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7,
     })
 
-    cookieStore.set('admin_id', admin.id, {
+    cookieStore.set('admin_id', loginResult.admin.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
