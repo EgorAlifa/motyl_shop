@@ -40,6 +40,8 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key-change-in-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://localhost:3000}
       NODE_TLS_REJECT_UNAUTHORIZED: '0'
+    volumes:
+      - uploads_data:/app/public/uploads
     networks:
       - motyl_network
     command: sh -c "prisma db push --skip-generate && prisma db seed && node server.js"
@@ -54,6 +56,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./cert:/etc/nginx/ssl:ro
+      - uploads_data:/usr/share/nginx/html/uploads:ro
     depends_on:
       - app
     networks:
@@ -61,6 +64,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   motyl_network:
