@@ -22,7 +22,7 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: motyl_keycloak
     restart: unless-stopped
     depends_on:
@@ -33,11 +33,13 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: motyluser
       KC_DB_PASSWORD: motylpass
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME: ${DOMAIN:-localhost}
+      KC_HOSTNAME_PATH: /auth
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_RELATIVE_PATH: /auth
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
     ports:
@@ -46,7 +48,7 @@ services:
       - motyl_network
     command: start-dev
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /auth/health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -65,7 +67,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://motyluser:motylpass@postgres:5432/motylshop
-      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_URL: http://keycloak:8080/auth
       KEYCLOAK_REALM: motyl-shop
       KEYCLOAK_CLIENT_ID: motyl-admin
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-your-client-secret}

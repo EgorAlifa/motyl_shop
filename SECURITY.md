@@ -20,10 +20,10 @@ Keycloak - это enterprise-grade open-source решение для управ�
 - ✅ Аудит входов и действий пользователей
 
 **Конфигурация:**
-- **URL**: http://localhost:8080
+- **URL**: https://motyl-shop.ru/auth
 - **Realm**: motyl-shop
 - **Client ID**: motyl-admin
-- **Admin Console**: http://localhost:8080/admin
+- **Admin Console**: https://motyl-shop.ru/auth/admin
 
 **Роли:**
 - `super-admin` - полный доступ ко всем функциям
@@ -252,7 +252,7 @@ bash /app/scripts/init-keycloak.sh
 ```
 
 4. **Войдите в Keycloak Admin Console:**
-- URL: http://localhost:8080/admin
+- URL: https://motyl-shop.ru/auth/admin
 - Username: admin
 - Password: (из KEYCLOAK_ADMIN_PASSWORD в .env)
 

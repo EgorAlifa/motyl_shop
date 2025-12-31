@@ -29,7 +29,7 @@ openssl rand -base64 24
 # ============================================
 
 # URL Keycloak (внутри Docker)
-KEYCLOAK_URL=http://keycloak:8080
+KEYCLOAK_URL=http://keycloak:8080/auth
 
 # Название realm в Keycloak
 KEYCLOAK_REALM=motyl-shop
@@ -87,7 +87,7 @@ ADMIN_EMAIL=admin@motyl-shop.ru
 ADMIN_PASSWORD=временный-пароль-123
 
 # Keycloak Configuration
-KEYCLOAK_URL=http://keycloak:8080
+KEYCLOAK_URL=http://keycloak:8080/auth
 KEYCLOAK_REALM=motyl-shop
 KEYCLOAK_CLIENT_ID=motyl-admin
 KEYCLOAK_CLIENT_SECRET=fK8vNm2pQr5sT9wXzY3aB6cD1eH4gJ7l
@@ -150,7 +150,7 @@ docker exec -it motyl_app bash /app/scripts/init-keycloak.sh
 
 ### Вариант А: Через Keycloak Admin Console
 
-1. Откройте: http://localhost:8080/admin (или https://motyl-shop.ru:8080/admin)
+1. Откройте: https://motyl-shop.ru/auth/admin (или https://motyl-shop.ru/auth/admin)
 2. Логин: `admin`
 3. Пароль: значение из `KEYCLOAK_ADMIN_PASSWORD`
 4. В левом верхнем углу выберите realm: **motyl-shop**
