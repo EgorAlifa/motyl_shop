@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8080}"
+KEYCLOAK_URL="${KEYCLOAK_URL:-http://keycloak:8080/auth}"
 ADMIN_USER="${KEYCLOAK_ADMIN:-admin}"
 ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
 REALM_NAME="motyl-shop"
@@ -9,7 +9,8 @@ CLIENT_ID="motyl-admin"
 CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-your-client-secret}"
 
 echo "Waiting for Keycloak to be ready..."
-until curl -sf "${KEYCLOAK_URL}/health/ready" > /dev/null; do
+echo "Checking: ${KEYCLOAK_URL}/health/ready"
+until curl -sf "${KEYCLOAK_URL}/health/ready" > /dev/null 2>&1; do
   echo "Waiting for Keycloak..."
   sleep 5
 done
