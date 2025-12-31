@@ -29,7 +29,7 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0",
     "sharp": "^0.33.5",
-    "@keycloak/keycloak-admin-client": "^23.0.0",
+    "@keycloak/keycloak-admin-client": "^26.4.7",
     "jsonwebtoken": "^9.0.2",
     "jose": "^5.2.0"
   },
