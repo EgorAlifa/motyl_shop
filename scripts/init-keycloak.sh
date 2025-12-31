@@ -9,8 +9,8 @@ CLIENT_ID="motyl-admin"
 CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-your-client-secret}"
 
 echo "Waiting for Keycloak to be ready..."
-echo "Checking: ${KEYCLOAK_URL}/health/ready"
-until curl -sf "${KEYCLOAK_URL}/health/ready" > /dev/null 2>&1; do
+echo "Checking: ${KEYCLOAK_URL}/realms/master"
+until curl -sf "${KEYCLOAK_URL}/realms/master" > /dev/null 2>&1; do
   echo "Waiting for Keycloak..."
   sleep 5
 done
