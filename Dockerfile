@@ -30,7 +30,7 @@ RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl ca-certificates curl jq && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -48,6 +48,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
+
+# Copy scripts for Keycloak initialization
+COPY --from=builder /app/scripts ./scripts
+RUN chmod +x ./scripts/*.sh
 
 # Install Prisma CLI and tsx for running migrations and seed
 # We need to do this as root before switching to nextjs user

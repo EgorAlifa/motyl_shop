@@ -247,17 +247,16 @@ read -p "Enter SMTP user (email): " SMTP_USER
 read -sp "Enter SMTP password: " SMTP_PASSWORD
 echo
 
-read -p "Enter admin email for notifications: " ADMIN_EMAIL
-read -sp "Enter admin panel password: " ADMIN_PASSWORD
+read -p "Enter admin email: " ADMIN_EMAIL
+read -sp "Enter admin password: " ADMIN_PASSWORD
 echo
 
-echo
-echo -e "${YELLOW}Master password is used to create new admin accounts via admin panel${NC}"
-read -sp "Enter master password for creating new admins: " ADMIN_MASTER_PASSWORD
-echo
-
-# Generate random secret
+# Generate random secrets
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
+KEYCLOAK_CLIENT_SECRET=$(openssl rand -base64 32)
+KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -base64 24)
+
+echo -e "${YELLOW}Generated secure secrets for JWT and Keycloak${NC}"
 
 # Create .env file
 cat > .env << EOF
@@ -270,13 +269,19 @@ SMTP_PORT=$SMTP_PORT
 SMTP_USER=$SMTP_USER
 SMTP_PASSWORD=$SMTP_PASSWORD
 SMTP_FROM=$SMTP_USER
+
+# Admin Account (legacy - для первоначальной настройки)
 ADMIN_EMAIL=$ADMIN_EMAIL
-
-# Admin Account
 ADMIN_PASSWORD=$ADMIN_PASSWORD
-ADMIN_MASTER_PASSWORD=$ADMIN_MASTER_PASSWORD
 
-# NextAuth
+# Keycloak Configuration
+KEYCLOAK_URL=http://keycloak:8080/auth
+KEYCLOAK_REALM=motyl-shop
+KEYCLOAK_CLIENT_ID=motyl-admin
+KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET
+KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
+
+# NextAuth / JWT Security
 NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 NEXTAUTH_URL=https://$DOMAIN
 
@@ -310,6 +315,43 @@ echo -e "${YELLOW}This may take several minutes on first run...${NC}"
 $DOCKER_COMPOSE up -d --build
 
 echo
+echo -e "${GREEN}Containers started! Waiting for services to be ready...${NC}"
+echo
+
+# Wait for Keycloak to be healthy
+echo -e "${YELLOW}Step 5: Waiting for Keycloak to be ready (this may take 1-2 minutes)...${NC}"
+KEYCLOAK_READY=0
+for i in {1..60}; do
+  if $DOCKER_CMD exec motyl_keycloak curl -sf http://localhost:8080/auth/health/ready > /dev/null 2>&1; then
+    KEYCLOAK_READY=1
+    break
+  fi
+  echo -n "."
+  sleep 2
+done
+echo
+
+if [ $KEYCLOAK_READY -eq 1 ]; then
+  echo -e "${GREEN}✓ Keycloak is ready!${NC}"
+  echo
+
+  # Initialize Keycloak realm
+  echo -e "${GREEN}Step 6: Initializing Keycloak realm and client...${NC}"
+  $DOCKER_CMD exec -e KEYCLOAK_URL=http://localhost:8080/auth \
+    -e KEYCLOAK_ADMIN=admin \
+    -e KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD \
+    -e KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
+    motyl_app bash /app/scripts/init-keycloak.sh
+
+  echo
+  echo -e "${GREEN}✓ Keycloak configured successfully!${NC}"
+else
+  echo -e "${YELLOW}⚠ Keycloak is taking longer than expected to start.${NC}"
+  echo -e "${YELLOW}You can initialize it manually later with:${NC}"
+  echo -e "${GREEN}docker exec -it motyl_app bash /app/scripts/init-keycloak.sh${NC}"
+fi
+
+echo
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Deployment completed successfully!  ${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -318,10 +360,45 @@ echo -e "${YELLOW}Important information:${NC}"
 echo
 echo -e "🌐 Store URL: ${GREEN}https://$DOMAIN${NC}"
 echo -e "🔐 Admin Panel: ${GREEN}https://$DOMAIN/admin${NC}"
+echo -e "🔑 Keycloak Admin Console: ${GREEN}https://$DOMAIN/auth/admin${NC}"
 echo
-echo -e "Admin credentials:"
-echo -e "  Email: ${GREEN}$ADMIN_EMAIL${NC}"
-echo -e "  Password: ${GREEN}$ADMIN_PASSWORD${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}  🚨 NEXT STEP: Create First User  🚨${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo
+echo -e "${RED}ВАЖНО: Авторизация теперь через Keycloak!${NC}"
+echo -e "Вам нужно создать первого пользователя в Keycloak."
+echo
+echo -e "${GREEN}Вариант 1: Через Keycloak Admin Console${NC}"
+echo -e "1. Откройте: ${GREEN}https://$DOMAIN/auth/admin${NC}"
+echo -e "2. Логин: ${GREEN}admin${NC}"
+echo -e "3. Пароль: ${GREEN}$KEYCLOAK_ADMIN_PASSWORD${NC}"
+echo -e "   ${YELLOW}(сохраните этот пароль!)${NC}"
+echo -e "4. В левом верхнем углу выберите realm: ${GREEN}motyl-shop${NC}"
+echo -e "5. Перейдите: Users → Add user"
+echo -e "6. Заполните:"
+echo -e "   - Email: ${GREEN}$ADMIN_EMAIL${NC}"
+echo -e "   - Email verified: ${GREEN}ON${NC}"
+echo -e "   - Enabled: ${GREEN}ON${NC}"
+echo -e "7. Нажмите Create"
+echo -e "8. Перейдите на вкладку Credentials"
+echo -e "9. Set password: ${GREEN}$ADMIN_PASSWORD${NC}"
+echo -e "   - Temporary: ${GREEN}OFF${NC}"
+echo -e "10. Перейдите на вкладку Role mappings"
+echo -e "11. Assign role: ${GREEN}super-admin${NC}"
+echo
+echo -e "${GREEN}Вариант 2: Через команду (после входа в админку первый раз)${NC}"
+echo -e "Перейдите: ${GREEN}https://$DOMAIN/admin/keycloak-users${NC}"
+echo
+echo -e "${YELLOW}Сохраните эти учетные данные:${NC}"
+echo
+echo -e "  ${BLUE}Keycloak Admin:${NC}"
+echo -e "    Логин: ${GREEN}admin${NC}"
+echo -e "    Пароль: ${GREEN}$KEYCLOAK_ADMIN_PASSWORD${NC}"
+echo
+echo -e "  ${BLUE}Ваш Super Admin:${NC}"
+echo -e "    Email: ${GREEN}$ADMIN_EMAIL${NC}"
+echo -e "    Пароль: ${GREEN}$ADMIN_PASSWORD${NC}"
 echo
 echo -e "${YELLOW}Note about SSL certificates:${NC}"
 echo -e "Your browser will show a security warning because the certificate is self-signed."
