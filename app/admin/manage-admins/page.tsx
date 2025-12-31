@@ -239,6 +239,7 @@ export default function ManageAdminsPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {admins.length === 0 && (
             <div className="text-center py-12 text-gray-500">
