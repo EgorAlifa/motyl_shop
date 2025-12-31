@@ -88,7 +88,8 @@ export default function OrdersPage() {
         )}
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
             <thead className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -161,6 +162,7 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {orders.length === 0 && (
             <div className="text-center py-12 text-gray-500">Заявок пока нет</div>
