@@ -6,27 +6,25 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Starting seed...')
 
-  // Create super admin user
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.ru'
-  const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10)
+  // Проверяем количество админов в базе
+  const adminCount = await prisma.admin.count()
 
-  const admin = await prisma.admin.upsert({
-    where: { email: adminEmail },
-    update: {
-      // Обновляем role на SUPER_ADMIN если уже существует
-      role: 'SUPER_ADMIN',
-      permissions: ['dashboard', 'products', 'orders', 'admins'],
-    },
-    create: {
-      email: adminEmail,
-      password: adminPassword,
-      name: 'Главный администратор',
-      role: 'SUPER_ADMIN',
-      permissions: ['dashboard', 'products', 'orders', 'admins'], // Полный доступ
-      isBlocked: false,
-    },
-  })
-  console.log('Super admin created:', admin.email)
+  // Если в базе только один админ - делаем его SUPER_ADMIN
+  if (adminCount === 1) {
+    const singleAdmin = await prisma.admin.findFirst()
+    if (singleAdmin) {
+      await prisma.admin.update({
+        where: { id: singleAdmin.id },
+        data: {
+          role: 'SUPER_ADMIN',
+          permissions: ['dashboard', 'products', 'orders', 'admins'],
+        },
+      })
+      console.log('Single admin promoted to SUPER_ADMIN:', singleAdmin.email)
+    }
+  } else {
+    console.log(`Found ${adminCount} admins in database`)
+  }
 
   // Create products
   const products = [
