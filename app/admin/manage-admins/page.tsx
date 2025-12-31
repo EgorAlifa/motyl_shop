@@ -278,7 +278,7 @@ function AdminForm({
     setFormData((prev) => ({
       ...prev,
       permissions: prev.permissions.includes(permission)
-        ? prev.permissions.filter((p) => p !== permission)
+        ? prev.permissions.filter((p: string) => p !== permission)
         : [...prev.permissions, permission],
     }))
   }
