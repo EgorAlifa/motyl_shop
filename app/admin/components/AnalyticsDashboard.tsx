@@ -63,63 +63,63 @@ export function AnalyticsDashboard() {
     <div className="space-y-8">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
+        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-blue-100 group hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
+              <ShoppingCart className="h-6 w-6 text-white" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
             {stats.recentOrders}
           </div>
-          <div className="text-sm text-gray-600">Заявок за 30 дней</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">Заявок за 30 дней</div>
           <div className="text-xs text-gray-500 mt-1">
             Всего: {stats.totalOrders}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
+        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-green-100 group hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
+              <DollarSign className="h-6 w-6 text-white" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
             {formatPrice(stats.recentRevenue)}
           </div>
-          <div className="text-sm text-gray-600">Выручка за 30 дней</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">Выручка за 30 дней</div>
           <div className="text-xs text-gray-500 mt-1">
             Всего: {formatPrice(stats.totalRevenue)}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
+        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-purple-100 group hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
+              <TrendingUp className="h-6 w-6 text-white" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
             {stats.recentOrders > 0
               ? formatPrice(stats.recentRevenue / stats.recentOrders)
               : formatPrice(0)}
           </div>
-          <div className="text-sm text-gray-600">Средний чек</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">Средний чек</div>
           <div className="text-xs text-gray-500 mt-1">
             За последние 30 дней
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Package className="h-6 w-6 text-orange-600" />
+        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-orange-100 group hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
+              <Package className="h-6 w-6 text-white" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-gray-900">
+          <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
             {stats.ordersByStatus.find((s) => s.status === 'NEW')?._count.status || 0}
           </div>
-          <div className="text-sm text-gray-600">Новых заявок</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">Новых заявок</div>
           <div className="text-xs text-gray-500 mt-1">
             Требуют обработки
           </div>
@@ -129,8 +129,8 @@ export function AnalyticsDashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Orders */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Заявки по дням</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Заявки по дням</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={stats.dailyOrders}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -161,8 +161,8 @@ export function AnalyticsDashboard() {
         </div>
 
         {/* Daily Revenue */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Выручка по дням</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Выручка по дням</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.dailyOrders}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -191,8 +191,8 @@ export function AnalyticsDashboard() {
       {/* Orders by Status & Top Products */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Orders by Status */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Заявки по статусам</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Заявки по статусам</h2>
           <div className="space-y-3">
             {stats.ordersByStatus.map((item) => (
               <div key={item.status} className="flex items-center justify-between">
@@ -208,12 +208,12 @@ export function AnalyticsDashboard() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Топ товаров</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Топ товаров</h2>
           <div className="space-y-4">
             {stats.topProducts.map((item, index) => (
               <div key={item.product?.id || index} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold shadow-md">
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">

@@ -193,6 +193,8 @@ function ProductForm({
     }
   )
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState(product?.image || '')
 
   // Auto-generate slug from name
   const generateSlug = (name: string) => {
@@ -210,6 +212,36 @@ function ProductForm({
       name,
       slug: generateSlug(name),
     })
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка загрузки')
+      }
+
+      setFormData((prev: any) => ({ ...prev, image: data.url }))
+      setImagePreview(data.url)
+    } catch (error: any) {
+      alert(error.message || 'Ошибка при загрузке изображения')
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -370,15 +402,49 @@ function ProductForm({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">
-                URL изображения (опционально)
-              </label>
-              <input
-                type="text"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
+              <label className="block text-sm font-semibold mb-2">Изображение товара</label>
+
+              {imagePreview && (
+                <div className="mb-4 relative">
+                  <img
+                    src={imagePreview}
+                    alt="Превью"
+                    className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreview('')
+                      setFormData({ ...formData, image: '' })
+                    }}
+                    className="absolute top-2 right-2 px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <label className="flex-1 cursor-pointer">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary hover:bg-primary/5 transition">
+                    {uploadingImage ? (
+                      <div className="text-gray-600">Загрузка...</div>
+                    ) : (
+                      <div>
+                        <div className="text-primary mb-1">📁 Выбрать файл</div>
+                        <div className="text-xs text-gray-500">JPG, PNG, WEBP до 5MB</div>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploadingImage}
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">

@@ -55,11 +55,11 @@ export function AdminNav() {
   ]
 
   return (
-    <nav className="bg-white border-b shadow-sm">
+    <nav className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
-            <Link href="/admin" className="flex items-center gap-2 text-xl font-bold text-primary">
+            <Link href="/admin" className="flex items-center gap-2 text-xl font-bold text-white hover:text-blue-100 transition">
               <Fish className="h-6 w-6" />
               <span>Админ-панель</span>
             </Link>
@@ -74,10 +74,10 @@ export function AdminNav() {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg transition',
+                      'flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium',
                       isActive
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-white/20 text-white shadow-lg'
+                        : 'text-blue-100 hover:bg-white/10 hover:text-white'
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -92,14 +92,14 @@ export function AdminNav() {
             <Link
               href="/"
               target="_blank"
-              className="text-gray-700 hover:text-primary transition text-sm"
+              className="text-blue-100 hover:text-white transition text-sm font-medium"
             >
               Перейти на сайт
             </Link>
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-red-600 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition font-medium"
             >
               <LogOut className="h-4 w-4" />
               <span>Выйти</span>

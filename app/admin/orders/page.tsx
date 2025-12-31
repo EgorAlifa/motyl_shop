@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AdminNav } from '../components/AdminNav'
 import { formatPrice, formatDate, orderStatusNames, orderStatusColors } from '@/lib/utils'
-import { Eye, Trash2 } from 'lucide-react'
+import { Eye, Trash2, ShoppingCart } from 'lucide-react'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
@@ -54,11 +54,11 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40">
         <AdminNav />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         </div>
       </div>
@@ -66,11 +66,18 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40">
       <AdminNav />
 
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Заявки</h1>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+            <ShoppingCart className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Заявки
+          </h1>
+        </div>
 
         {selectedOrder && (
           <OrderDetails
@@ -80,9 +87,9 @@ export default function OrdersPage() {
           />
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Номер
@@ -133,18 +140,22 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right text-sm">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(order.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Просмотр"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(order.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Удалить"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -170,14 +181,16 @@ function OrderDetails({
   onUpdateStatus: (id: string, status: string) => void
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Заявка #{order.orderNumber}</h2>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Заявка #{order.orderNumber}
+            </h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
             >
               ✕
             </button>
@@ -228,7 +241,7 @@ function OrderDetails({
             {order.comment && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Комментарий</h3>
-                <div className="p-4 bg-gray-50 rounded-lg">{order.comment}</div>
+                <div className="p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl border border-gray-200">{order.comment}</div>
               </div>
             )}
 
@@ -290,9 +303,9 @@ function OrderDetails({
                       onUpdateStatus(order.id, status)
                       onClose()
                     }}
-                    className={`px-4 py-2 rounded-lg transition ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       order.status === status
-                        ? 'bg-primary text-white'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -306,7 +319,7 @@ function OrderDetails({
           <div className="mt-6">
             <button
               onClick={onClose}
-              className="w-full px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              className="w-full px-6 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all font-medium shadow-sm"
             >
               Закрыть
             </button>

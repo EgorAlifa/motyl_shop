@@ -32,18 +32,26 @@ export default async function CatalogPage({
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold mb-8">Каталог товаров</h1>
+      <main className="flex-1 bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
+        {/* Hero Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16">
+          <div className="container mx-auto px-4">
+            <h1 className="text-5xl font-bold mb-4">Каталог товаров</h1>
+            <p className="text-xl text-blue-100">
+              Выбирайте качественную наживку для успешной рыбалки
+            </p>
+          </div>
+        </div>
 
+        <div className="container mx-auto px-4 py-8">
           {/* Category Filter */}
-          <div className="mb-8 flex flex-wrap gap-2">
+          <div className="mb-8 flex flex-wrap gap-3">
             <a
               href="/catalog"
-              className={`px-4 py-2 rounded-lg transition ${
+              className={`px-6 py-3 rounded-xl font-medium transition-all shadow-sm ${
                 !category
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:shadow-md hover:-translate-y-0.5'
               }`}
             >
               Все товары
@@ -52,10 +60,10 @@ export default async function CatalogPage({
               <a
                 key={cat.category}
                 href={`/catalog?category=${cat.category}`}
-                className={`px-4 py-2 rounded-lg transition ${
+                className={`px-6 py-3 rounded-xl font-medium transition-all shadow-sm ${
                   category === cat.category
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:shadow-md hover:-translate-y-0.5'
                 }`}
               >
                 {categoryNames[cat.category] || cat.category}
