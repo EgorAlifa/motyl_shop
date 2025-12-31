@@ -195,6 +195,7 @@ function ProductForm({
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imagePreview, setImagePreview] = useState(product?.image || '')
+  const [imageInputType, setImageInputType] = useState<'url' | 'upload'>('upload')
 
   // Auto-generate slug from name
   const generateSlug = (name: string) => {
@@ -404,6 +405,7 @@ function ProductForm({
             <div>
               <label className="block text-sm font-semibold mb-2">Изображение товара</label>
 
+              {/* Image Preview */}
               {imagePreview && (
                 <div className="mb-4 relative">
                   <img
@@ -424,14 +426,41 @@ function ProductForm({
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <label className="flex-1 cursor-pointer">
+              {/* Toggle between URL and Upload */}
+              <div className="mb-4 flex gap-2 bg-gray-100 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setImageInputType('upload')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
+                    imageInputType === 'upload'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  📁 Загрузить файл
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputType('url')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition ${
+                    imageInputType === 'url'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  🔗 Указать URL
+                </button>
+              </div>
+
+              {/* Upload File */}
+              {imageInputType === 'upload' && (
+                <label className="block cursor-pointer">
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary hover:bg-primary/5 transition">
                     {uploadingImage ? (
                       <div className="text-gray-600">Загрузка...</div>
                     ) : (
                       <div>
-                        <div className="text-primary mb-1">📁 Выбрать файл</div>
+                        <div className="text-primary mb-1">📁 Выбрать файл с компьютера</div>
                         <div className="text-xs text-gray-500">JPG, PNG, WEBP до 5MB</div>
                       </div>
                     )}
@@ -444,7 +473,26 @@ function ProductForm({
                     disabled={uploadingImage}
                   />
                 </label>
-              </div>
+              )}
+
+              {/* URL Input */}
+              {imageInputType === 'url' && (
+                <div>
+                  <input
+                    type="url"
+                    value={formData.image}
+                    onChange={(e) => {
+                      setFormData({ ...formData, image: e.target.value })
+                      setImagePreview(e.target.value)
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Вставьте ссылку на изображение из интернета
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

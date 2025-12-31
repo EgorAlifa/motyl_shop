@@ -42,7 +42,7 @@ RUN useradd --system --uid 1001 --create-home nextjs
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy Prisma client and schema
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -52,6 +52,9 @@ COPY --from=builder /app/prisma ./prisma
 # Install Prisma CLI and tsx for running migrations and seed
 # We need to do this as root before switching to nextjs user
 RUN npm install -g prisma@5.22.0 tsx@4.19.2
+
+# Create uploads directory with proper permissions
+RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
 
 USER nextjs
 
