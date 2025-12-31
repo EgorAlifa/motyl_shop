@@ -142,47 +142,47 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
 }
 
 // Декоратор для защиты API routes
-export function withAuth(
-  handler: (request: NextRequest, user: AuthUser) => Promise<NextResponse>
+export function withAuth<T = any>(
+  handler: (request: NextRequest, user: AuthUser, context?: T) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, context?: T) => {
     const authResult = await requireAuth(request)
 
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    return handler(request, authResult)
+    return handler(request, authResult, context)
   }
 }
 
 // Декоратор для Super Admin endpoints
-export function withSuperAdmin(
-  handler: (request: NextRequest, user: AuthUser) => Promise<NextResponse>
+export function withSuperAdmin<T = any>(
+  handler: (request: NextRequest, user: AuthUser, context?: T) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, context?: T) => {
     const authResult = await requireSuperAdmin(request)
 
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    return handler(request, authResult)
+    return handler(request, authResult, context)
   }
 }
 
 // Декоратор с проверкой конкретного разрешения
-export function withPermission(
+export function withPermission<T = any>(
   permission: string,
-  handler: (request: NextRequest, user: AuthUser) => Promise<NextResponse>
+  handler: (request: NextRequest, user: AuthUser, context?: T) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, context?: T) => {
     const authResult = await requirePermission(request, permission)
 
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    return handler(request, authResult)
+    return handler(request, authResult, context)
   }
 }
