@@ -27,7 +27,8 @@
     "lucide-react": "^0.462.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

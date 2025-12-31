@@ -251,6 +251,11 @@ read -p "Enter admin email for notifications: " ADMIN_EMAIL
 read -sp "Enter admin panel password: " ADMIN_PASSWORD
 echo
 
+echo
+echo -e "${YELLOW}Master password is used to create new admin accounts via admin panel${NC}"
+read -sp "Enter master password for creating new admins: " ADMIN_MASTER_PASSWORD
+echo
+
 # Generate random secret
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 
@@ -269,6 +274,7 @@ ADMIN_EMAIL=$ADMIN_EMAIL
 
 # Admin Account
 ADMIN_PASSWORD=$ADMIN_PASSWORD
+ADMIN_MASTER_PASSWORD=$ADMIN_MASTER_PASSWORD
 
 # NextAuth
 NEXTAUTH_SECRET=$NEXTAUTH_SECRET

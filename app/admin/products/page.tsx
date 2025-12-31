@@ -194,6 +194,24 @@ function ProductForm({
   )
   const [loading, setLoading] = useState(false)
 
+  // Auto-generate slug from name
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^а-яёa-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+  }
+
+  const handleNameChange = (name: string) => {
+    setFormData({
+      ...formData,
+      name,
+      slug: generateSlug(name),
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -236,19 +254,22 @@ function ProductForm({
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full px-4 py-2 border rounded-lg"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Slug (URL)</label>
+                <label className="block text-sm font-semibold mb-2">
+                  Slug (URL)
+                  <span className="text-xs text-gray-500 ml-2">(генерируется автоматически)</span>
+                </label>
                 <input
                   type="text"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg bg-gray-50"
                   required
                 />
               </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Fish, LayoutDashboard, Package, ShoppingCart, LogOut } from 'lucide-react'
+import { Fish, LayoutDashboard, Package, ShoppingCart, UserPlus, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function AdminNav() {
@@ -30,6 +30,11 @@ export function AdminNav() {
       href: '/admin/orders',
       label: 'Заявки',
       icon: ShoppingCart,
+    },
+    {
+      href: '/admin/create-admin',
+      label: 'Админы',
+      icon: UserPlus,
     },
   ]
 
