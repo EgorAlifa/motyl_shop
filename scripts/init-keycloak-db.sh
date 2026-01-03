@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
+# Grant CREATEDB privilege to motyluser so Keycloak can create its own database
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE keycloak;
-    GRANT ALL PRIVILEGES ON DATABASE keycloak TO $POSTGRES_USER;
+    ALTER USER $POSTGRES_USER CREATEDB;
 EOSQL
 
-echo "Keycloak database created successfully"
+echo "Granted CREATEDB privilege to $POSTGRES_USER"
