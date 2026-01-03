@@ -4,12 +4,25 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Protect admin pages (except login)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    const session = request.cookies.get('admin-session') || request.cookies.get('auth-token')
+  // Protect admin pages (except callback)
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/callback')) {
+    const session = request.cookies.get('auth-token')
 
     if (!session) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+      // Redirect to Keycloak login (Authorization Code Flow)
+      const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080/auth'
+      const keycloakRealm = process.env.KEYCLOAK_REALM || 'motyl-shop'
+      const clientId = process.env.KEYCLOAK_CLIENT_ID || 'motyl-admin'
+
+      const authUrl = new URL(`${keycloakUrl}/realms/${keycloakRealm}/protocol/openid-connect/auth`)
+      const redirectUri = new URL('/admin/callback', request.url).toString()
+
+      authUrl.searchParams.set('client_id', clientId)
+      authUrl.searchParams.set('redirect_uri', redirectUri)
+      authUrl.searchParams.set('response_type', 'code')
+      authUrl.searchParams.set('scope', 'openid email profile')
+
+      return NextResponse.redirect(authUrl.toString())
     }
   }
 

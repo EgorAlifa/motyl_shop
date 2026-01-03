@@ -276,6 +276,7 @@ ADMIN_PASSWORD=$ADMIN_PASSWORD
 
 # Keycloak Configuration
 KEYCLOAK_URL=http://keycloak:8080/auth
+NEXT_PUBLIC_KEYCLOAK_URL=https://$DOMAIN/auth
 KEYCLOAK_REALM=motyl-shop
 KEYCLOAK_CLIENT_ID=motyl-admin
 KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET
@@ -341,6 +342,7 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
     -e KEYCLOAK_ADMIN=admin \
     -e KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD \
     -e KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
+    -e DOMAIN=$DOMAIN \
     motyl_app bash /app/scripts/init-keycloak.sh
 
   echo

@@ -238,3 +238,95 @@ export async function refreshSessionToken(oldToken: string): Promise<string> {
     throw new Error('Failed to refresh token')
   }
 }
+
+// Authorization Code Flow: Обмен code на tokens
+export async function exchangeCodeForTokens(code: string, redirectUri: string): Promise<{
+  access_token: string
+  refresh_token: string
+  id_token: string
+  token_type: string
+  expires_in: number
+}> {
+  try {
+    const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri,
+        client_id: KEYCLOAK_CLIENT_ID,
+        client_secret: KEYCLOAK_CLIENT_SECRET,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Token exchange failed:', errorData)
+      throw new Error(`Token exchange failed: ${response.status}`)
+    }
+
+    const tokens = await response.json()
+    return tokens
+  } catch (error: any) {
+    console.error('Error exchanging code for tokens:', error)
+    throw new Error(error.message || 'Failed to exchange authorization code')
+  }
+}
+
+// Получение информации о пользователе из Keycloak по access_token
+export async function getUserInfo(accessToken: string): Promise<{
+  sub: string
+  email: string
+  email_verified: boolean
+  preferred_username: string
+  given_name?: string
+  family_name?: string
+  realm_access?: { roles: string[] }
+}> {
+  try {
+    const userInfoUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`
+
+    const response = await fetch(userInfoUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to get user info: ${response.status}`)
+    }
+
+    const userInfo = await response.json()
+    return userInfo
+  } catch (error: any) {
+    console.error('Error getting user info:', error)
+    throw new Error(error.message || 'Failed to get user information')
+  }
+}
+
+// Logout из Keycloak
+export async function logoutFromKeycloak(refreshToken: string): Promise<void> {
+  try {
+    const logoutUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout`
+
+    await fetch(logoutUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: KEYCLOAK_CLIENT_ID,
+        client_secret: KEYCLOAK_CLIENT_SECRET,
+        refresh_token: refreshToken,
+      }),
+    })
+  } catch (error) {
+    console.error('Error logging out from Keycloak:', error)
+    // Не выбрасываем ошибку, так как logout должен всегда успешно завершаться на клиенте
+  }
+}

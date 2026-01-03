@@ -68,6 +68,7 @@ services:
     environment:
       DATABASE_URL: postgresql://motyluser:motylpass@postgres:5432/motylshop
       KEYCLOAK_URL: http://keycloak:8080/auth
+      NEXT_PUBLIC_KEYCLOAK_URL: https://${DOMAIN:-localhost}/auth
       KEYCLOAK_REALM: motyl-shop
       KEYCLOAK_CLIENT_ID: motyl-admin
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-your-client-secret}

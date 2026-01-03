@@ -7,6 +7,7 @@ ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
 REALM_NAME="motyl-shop"
 CLIENT_ID="motyl-admin"
 CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-your-client-secret}"
+DOMAIN="${DOMAIN:-localhost}"
 
 echo "Waiting for Keycloak to be ready..."
 echo "Checking: ${KEYCLOAK_URL}/realms/master"
@@ -66,14 +67,29 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
     "enabled": true,
     "clientAuthenticatorType": "client-secret",
     "secret": "'"${CLIENT_SECRET}"'",
-    "redirectUris": ["*"],
-    "webOrigins": ["*"],
+    "rootUrl": "https://'"${DOMAIN}"'",
+    "baseUrl": "/admin",
+    "redirectUris": [
+      "https://'"${DOMAIN}"'/admin/callback",
+      "http://localhost:3000/admin/callback",
+      "http://127.0.0.1:3000/admin/callback"
+    ],
+    "webOrigins": [
+      "https://'"${DOMAIN}"'",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ],
     "protocol": "openid-connect",
     "publicClient": false,
     "standardFlowEnabled": true,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
     "serviceAccountsEnabled": true,
-    "authorizationServicesEnabled": true,
-    "directAccessGrantsEnabled": true
+    "authorizationServicesEnabled": false,
+    "fullScopeAllowed": true,
+    "attributes": {
+      "post.logout.redirect.uris": "https://'"${DOMAIN}"'/+##http://localhost:3000/+"
+    }
   }' || echo "Client may already exist"
 
 echo "Client created/updated"
