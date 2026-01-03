@@ -353,10 +353,10 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
   # Get admin token
   ADMIN_TOKEN=$($DOCKER_CMD exec motyl_app curl -s -X POST "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "username=admin" \
-    -d "password=$KEYCLOAK_ADMIN_PASSWORD" \
-    -d "grant_type=password" \
-    -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+    --data-urlencode "username=admin" \
+    --data-urlencode "password=$KEYCLOAK_ADMIN_PASSWORD" \
+    --data-urlencode "grant_type=password" \
+    --data-urlencode "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
 
   if [ -n "$ADMIN_TOKEN" ] && [ "$ADMIN_TOKEN" != "null" ]; then
     # Create user
