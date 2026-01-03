@@ -336,11 +336,20 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
   echo -e "${GREEN}✓ Keycloak is ready!${NC}"
   echo
 
+  # Read actual Keycloak admin password from the running container
+  echo -e "${YELLOW}Reading Keycloak admin password from container...${NC}"
+  ACTUAL_KC_PASSWORD=$($DOCKER_CMD exec motyl_keycloak env | grep KEYCLOAK_ADMIN_PASSWORD | cut -d'=' -f2)
+
+  if [ -z "$ACTUAL_KC_PASSWORD" ]; then
+    echo -e "${RED}Failed to read Keycloak admin password from container!${NC}"
+    ACTUAL_KC_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
+  fi
+
   # Initialize Keycloak realm
   echo -e "${GREEN}Step 6: Initializing Keycloak realm and client...${NC}"
   $DOCKER_CMD exec -e KEYCLOAK_URL=http://keycloak:8080/auth \
     -e KEYCLOAK_ADMIN=admin \
-    -e KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD \
+    -e KEYCLOAK_ADMIN_PASSWORD="$ACTUAL_KC_PASSWORD" \
     -e KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     -e DOMAIN=$DOMAIN \
     motyl_app bash /app/scripts/init-keycloak.sh
@@ -356,7 +365,7 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
   ADMIN_TOKEN=$($DOCKER_CMD exec motyl_app curl -s -X POST "http://keycloak:8080/auth/realms/master/protocol/openid-connect/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     --data-urlencode "username=admin" \
-    --data-urlencode "password=$KEYCLOAK_ADMIN_PASSWORD" \
+    --data-urlencode "password=$ACTUAL_KC_PASSWORD" \
     --data-urlencode "grant_type=password" \
     --data-urlencode "client_id=admin-cli" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
 
@@ -472,7 +481,7 @@ echo -e "${YELLOW}Сохраните эти учетные данные:${NC}"
 echo
 echo -e "  ${BLUE}Keycloak Admin:${NC}"
 echo -e "    Логин: ${GREEN}admin${NC}"
-echo -e "    Пароль: ${GREEN}$KEYCLOAK_ADMIN_PASSWORD${NC}"
+echo -e "    Пароль: ${GREEN}${ACTUAL_KC_PASSWORD:-$KEYCLOAK_ADMIN_PASSWORD}${NC}"
 echo
 echo -e "  ${BLUE}Ваш Super Admin:${NC}"
 echo -e "    Email: ${GREEN}$ADMIN_EMAIL${NC}"
