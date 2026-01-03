@@ -343,6 +343,9 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
   if [ -z "$ACTUAL_KC_PASSWORD" ]; then
     echo -e "${RED}Failed to read Keycloak admin password from container!${NC}"
     ACTUAL_KC_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
+    echo -e "${YELLOW}Using generated password from .env: ${ACTUAL_KC_PASSWORD}${NC}"
+  else
+    echo -e "${GREEN}Successfully read password from container: ${ACTUAL_KC_PASSWORD}${NC}"
   fi
 
   # Initialize Keycloak realm

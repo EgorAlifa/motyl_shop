@@ -20,6 +20,8 @@ echo "Keycloak is ready!"
 
 # Get admin token
 echo "Getting admin access token..."
+echo "Using username: ${ADMIN_USER}"
+echo "Using password: ${ADMIN_PASSWORD}"
 TOKEN_RESPONSE=$(curl -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "username=${ADMIN_USER}" \
