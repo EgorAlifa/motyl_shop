@@ -310,6 +310,28 @@ echo -e "${GREEN}Step 3: Stopping existing containers (if any)...${NC}"
 $DOCKER_COMPOSE down 2>/dev/null || true
 echo
 
+# Recreate Keycloak database so it creates admin user on first boot
+echo -e "${GREEN}Step 3.5: Preparing Keycloak database...${NC}"
+# Start only postgres to recreate keycloak database
+$DOCKER_COMPOSE up -d postgres
+echo -n "Waiting for PostgreSQL to be ready..."
+for i in {1..30}; do
+  if $DOCKER_CMD exec motyl_postgres pg_isready -U motyluser -d motylshop > /dev/null 2>&1; then
+    break
+  fi
+  echo -n "."
+  sleep 1
+done
+echo " Ready!"
+
+# Drop and recreate keycloak database so Keycloak will create admin user
+echo -e "${YELLOW}Recreating keycloak database for fresh admin user creation...${NC}"
+$DOCKER_CMD exec motyl_postgres psql -U motyluser -d motylshop -c "DROP DATABASE IF EXISTS keycloak;" 2>/dev/null || true
+$DOCKER_CMD exec motyl_postgres psql -U motyluser -d motylshop -c "CREATE DATABASE keycloak;" 2>/dev/null || true
+$DOCKER_CMD exec motyl_postgres psql -U motyluser -d motylshop -c "GRANT ALL PRIVILEGES ON DATABASE keycloak TO motyluser;" 2>/dev/null || true
+echo -e "${GREEN}✓ Keycloak database recreated${NC}"
+echo
+
 # Build and start containers
 echo -e "${GREEN}Step 4: Building and starting Docker containers...${NC}"
 echo -e "${YELLOW}This may take several minutes on first run...${NC}"
@@ -323,7 +345,7 @@ echo
 echo -e "${YELLOW}Step 5: Waiting for Keycloak to be ready (this may take 1-2 minutes)...${NC}"
 KEYCLOAK_READY=0
 for i in {1..60}; do
-  if $DOCKER_CMD exec motyl_app curl -sf http://keycloak:8080/auth/realms/master > /dev/null 2>&1; then
+  if $DOCKER_CMD exec motyl_app curl -sf http://keycloak:8080/auth/ > /dev/null 2>&1; then
     KEYCLOAK_READY=1
     break
   fi
