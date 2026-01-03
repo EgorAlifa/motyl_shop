@@ -75,18 +75,10 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
     "enabled": true,
     "clientAuthenticatorType": "client-secret",
     "secret": "'"${CLIENT_SECRET}"'",
-    "rootUrl": "https://'"${DOMAIN}"'",
+    "rootUrl": "*",
     "baseUrl": "/admin",
-    "redirectUris": [
-      "https://'"${DOMAIN}"'/admin/callback",
-      "http://localhost:3000/admin/callback",
-      "http://127.0.0.1:3000/admin/callback"
-    ],
-    "webOrigins": [
-      "https://'"${DOMAIN}"'",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000"
-    ],
+    "redirectUris": ["*"],
+    "webOrigins": ["*"],
     "protocol": "openid-connect",
     "publicClient": false,
     "standardFlowEnabled": true,
@@ -96,7 +88,7 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
     "authorizationServicesEnabled": false,
     "fullScopeAllowed": true,
     "attributes": {
-      "post.logout.redirect.uris": "https://'"${DOMAIN}"'/+##http://localhost:3000/+"
+      "post.logout.redirect.uris": "*"
     }
   }' || echo "Client may already exist"
 

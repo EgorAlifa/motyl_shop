@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем redirect_uri (должен совпадать с тем, что был в запросе на авторизацию)
-    const redirectUri = new URL('/admin/callback', request.url).toString()
+    // Используем правильный внешний URL из заголовков
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const redirectUri = `${protocol}://${host}/admin/callback`
 
     // Обмениваем code на tokens
     const tokens = await exchangeCodeForTokens(code, redirectUri)

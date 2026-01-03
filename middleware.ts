@@ -14,8 +14,13 @@ export function middleware(request: NextRequest) {
       const keycloakRealm = process.env.KEYCLOAK_REALM || 'motyl-shop'
       const clientId = process.env.KEYCLOAK_CLIENT_ID || 'motyl-admin'
 
+      // Get the proper external URL from headers or env
+      const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+      const protocol = request.headers.get('x-forwarded-proto') || 'https'
+      const baseUrl = `${protocol}://${host}`
+
       const authUrl = new URL(`${keycloakUrl}/realms/${keycloakRealm}/protocol/openid-connect/auth`)
-      const redirectUri = new URL('/admin/callback', request.url).toString()
+      const redirectUri = `${baseUrl}/admin/callback`
 
       authUrl.searchParams.set('client_id', clientId)
       authUrl.searchParams.set('redirect_uri', redirectUri)
