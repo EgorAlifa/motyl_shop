@@ -19,12 +19,16 @@ echo "Keycloak is ready!"
 
 # Get admin token
 echo "Getting admin access token..."
-ADMIN_TOKEN=$(curl -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+TOKEN_RESPONSE=$(curl -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=${ADMIN_USER}" \
-  -d "password=${ADMIN_PASSWORD}" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r '.access_token')
+  --data-urlencode "username=${ADMIN_USER}" \
+  --data-urlencode "password=${ADMIN_PASSWORD}" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "client_id=admin-cli")
+
+echo "Token response: $TOKEN_RESPONSE"
+
+ADMIN_TOKEN=$(echo "$TOKEN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
 
 if [ "$ADMIN_TOKEN" == "null" ] || [ -z "$ADMIN_TOKEN" ]; then
   echo "Failed to get admin token. Check Keycloak admin credentials."
