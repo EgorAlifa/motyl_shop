@@ -34,7 +34,6 @@ services:
       KC_DB_USERNAME: motyluser
       KC_DB_PASSWORD: motylpass
       KC_HOSTNAME: ${DOMAIN:-localhost}
-      KC_HOSTNAME_PATH: /auth
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
