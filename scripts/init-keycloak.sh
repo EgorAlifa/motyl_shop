@@ -10,9 +10,15 @@ CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-your-client-secret}"
 DOMAIN="${DOMAIN:-localhost}"
 
 echo "Waiting for Keycloak to be ready..."
-echo "Checking: ${KEYCLOAK_URL}/realms/master"
-until curl -sf "${KEYCLOAK_URL}/realms/master" > /dev/null 2>&1; do
-  echo "Waiting for Keycloak..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+until curl -sf "${KEYCLOAK_URL}/" > /dev/null 2>&1; do
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+    echo "Keycloak did not become ready in time"
+    exit 1
+  fi
+  echo "Waiting for Keycloak... (${RETRY_COUNT}/${MAX_RETRIES})"
   sleep 5
 done
 
