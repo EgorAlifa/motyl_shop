@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { exchangeCodeForTokens, getUserInfo, createSessionToken } from '@/lib/keycloak'
 import { cookies } from 'next/headers'
 
+// In-memory cache для предотвращения повторного использования authorization codes
+// Map<code, timestamp>
+const processedCodes = new Map<string, number>()
+
+// Очистка старых кодов (старше 5 минут)
+function cleanupOldCodes() {
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
+  for (const [code, timestamp] of processedCodes.entries()) {
+    if (timestamp < fiveMinutesAgo) {
+      processedCodes.delete(code)
+    }
+  }
+}
+
 export async function GET(request: NextRequest) {
   // Получаем правильный внешний URL из заголовков
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
@@ -24,6 +38,18 @@ export async function GET(request: NextRequest) {
     if (!code) {
       return NextResponse.redirect(`${baseUrl}/admin/login?error=missing_code`)
     }
+
+    // Защита от повторного использования кода
+    if (processedCodes.has(code)) {
+      console.log('[WARN] Authorization code already processed, redirecting to admin')
+      return NextResponse.redirect(`${baseUrl}/admin`)
+    }
+
+    // Отмечаем код как обрабатываемый
+    processedCodes.set(code, Date.now())
+
+    // Очищаем старые коды
+    cleanupOldCodes()
 
     // Получаем redirect_uri (должен совпадать с тем, что был в запросе на авторизацию)
     const redirectUri = `${baseUrl}/admin/callback`
@@ -85,6 +111,14 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error: any) {
     console.error('Callback handler error:', error)
+
+    // Удаляем код из кеша при ошибке, чтобы можно было повторить попытку
+    const searchParams = request.nextUrl.searchParams
+    const code = searchParams.get('code')
+    if (code) {
+      processedCodes.delete(code)
+    }
+
     const errorMessage = encodeURIComponent(error.message || 'authentication_failed')
     return NextResponse.redirect(`${baseUrl}/admin/login?error=${errorMessage}`)
   }
