@@ -9,6 +9,7 @@ const createUserSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   role: z.enum(['admin', 'super_admin']).default('admin'),
+  permissions: z.array(z.string()).default([]),
 })
 
 // GET /api/keycloak/users - получить список пользователей
@@ -26,6 +27,7 @@ export const GET = withSuperAdmin(async (request: NextRequest) => {
         enabled: user.enabled,
         emailVerified: user.emailVerified,
         role: user.attributes?.role?.[0] || 'admin',
+        permissions: user.attributes?.permissions || [],
       })),
     })
   } catch (error: any) {

@@ -12,7 +12,15 @@ interface KeycloakUser {
   enabled: boolean
   emailVerified?: boolean
   role: 'admin' | 'super_admin'
+  permissions?: string[]
 }
+
+// Доступные разделы админки
+const AVAILABLE_PERMISSIONS = [
+  { id: 'dashboard', label: 'Панель управления' },
+  { id: 'products', label: 'Товары' },
+  { id: 'orders', label: 'Заявки' },
+] as const
 
 export default function KeycloakUsersPage() {
   const [users, setUsers] = useState<KeycloakUser[]>([])
@@ -237,9 +245,19 @@ function UserForm({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     role: user?.role || 'admin',
+    permissions: user?.permissions || [],
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const handlePermissionToggle = (permissionId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      permissions: prev.permissions.includes(permissionId)
+        ? prev.permissions.filter((p) => p !== permissionId)
+        : [...prev.permissions, permissionId],
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -254,6 +272,8 @@ function UserForm({
         ? {
             firstName: formData.firstName,
             lastName: formData.lastName,
+            role: formData.role,
+            permissions: formData.permissions,
             ...(formData.password && { password: formData.password }),
           }
         : formData
@@ -336,19 +356,47 @@ function UserForm({
               <p className="text-xs text-gray-500 mt-1">Минимум 8 символов</p>
             </div>
 
-            {!user && (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Роль</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'super_admin' })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Роль</label>
+              <select
+                value={formData.role}
+                onChange={(e) =>
+                  setFormData({ ...formData, role: e.target.value as 'admin' | 'super_admin' })
+                }
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="admin">Admin</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Super Admin имеет полный доступ ко всем разделам
+              </p>
+            </div>
+
+            {formData.role === 'admin' && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <label className="block text-sm font-semibold mb-3">
+                  Доступ к разделам админки
+                </label>
+                <div className="space-y-2">
+                  {AVAILABLE_PERMISSIONS.map((permission) => (
+                    <label
+                      key={permission.id}
+                      className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.permissions.includes(permission.id)}
+                        onChange={() => handlePermissionToggle(permission.id)}
+                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-700">{permission.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Выберите, какие разделы будут доступны этому администратору
+                </p>
               </div>
             )}
 

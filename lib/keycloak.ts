@@ -54,6 +54,7 @@ export async function createKeycloakUser(
     firstName?: string
     lastName?: string
     role?: 'admin' | 'super_admin'
+    permissions?: string[]
   }
 ): Promise<{ id: string; username: string }> {
   try {
@@ -75,6 +76,7 @@ export async function createKeycloakUser(
       ],
       attributes: {
         role: [userData.role || 'admin'],
+        permissions: userData.permissions || [],
       },
     }
 
@@ -146,6 +148,58 @@ export async function updateKeycloakUser(
   } catch (error) {
     console.error('Error updating Keycloak user:', error)
     throw new Error('Failed to update user in Keycloak')
+  }
+}
+
+// Изменение роли пользователя
+export async function updateUserRole(
+  userId: string,
+  newRole: 'admin' | 'super_admin'
+): Promise<void> {
+  try {
+    const client = await getKeycloakAdmin()
+
+    // Получаем все realm роли
+    const allRoles = await client.roles.find()
+
+    // Получаем текущие роли пользователя
+    const currentRoles = await client.users.listRealmRoleMappings({ id: userId })
+
+    // Удаляем старые роли admin/super-admin
+    const rolesToRemove = currentRoles.filter(
+      (role) => role.name === 'admin' || role.name === 'super-admin'
+    )
+
+    if (rolesToRemove.length > 0) {
+      await client.users.delRealmRoleMappings({
+        id: userId,
+        roles: rolesToRemove.map((r) => ({ id: r.id!, name: r.name! })),
+      })
+    }
+
+    // Добавляем новую роль
+    const roleToAssign = newRole === 'super_admin' ? 'super-admin' : 'admin'
+    const role = allRoles.find((r) => r.name === roleToAssign)
+
+    if (role && role.id) {
+      await client.users.addRealmRoleMappings({
+        id: userId,
+        roles: [{ id: role.id, name: role.name! }],
+      })
+    }
+
+    // Обновляем атрибут role для совместимости
+    await client.users.update(
+      { id: userId },
+      {
+        attributes: {
+          role: [newRole],
+        },
+      }
+    )
+  } catch (error) {
+    console.error('Error updating user role:', error)
+    throw new Error('Failed to update user role')
   }
 }
 

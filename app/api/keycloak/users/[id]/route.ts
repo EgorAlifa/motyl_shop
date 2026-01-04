@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { deleteKeycloakUser, updateKeycloakUser, resetKeycloakUserPassword } from '@/lib/keycloak'
+import { deleteKeycloakUser, updateKeycloakUser, resetKeycloakUserPassword, updateUserRole } from '@/lib/keycloak'
 import { withSuperAdmin } from '@/lib/api-auth'
 import { z } from 'zod'
 
@@ -9,6 +9,8 @@ const updateUserSchema = z.object({
   email: z.string().email().optional(),
   enabled: z.boolean().optional(),
   password: z.string().min(8).optional(),
+  role: z.enum(['admin', 'super_admin']).optional(),
+  permissions: z.array(z.string()).optional(),
 })
 
 // DELETE /api/keycloak/users/[id] - удалить пользователя
@@ -45,6 +47,23 @@ export const PATCH = withSuperAdmin(
       if (validatedData.password) {
         await resetKeycloakUserPassword(id, validatedData.password, false)
         delete validatedData.password
+      }
+
+      // Если передана новая роль, обновляем её
+      if (validatedData.role) {
+        await updateUserRole(id, validatedData.role)
+        delete validatedData.role
+      }
+
+      // Если переданы permissions, обновляем attributes
+      if (validatedData.permissions !== undefined) {
+        const attributes: Record<string, string[]> = {
+          permissions: validatedData.permissions,
+        }
+
+        // Обновляем permissions через attributes
+        await updateKeycloakUser(id, { attributes })
+        delete validatedData.permissions
       }
 
       // Обновляем остальные данные
