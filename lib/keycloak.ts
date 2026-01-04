@@ -325,6 +325,8 @@ export function decodeAccessToken(accessToken: string): {
   preferred_username?: string
   realm_access?: { roles: string[] }
   resource_access?: any
+  exp?: number
+  iat?: number
   [key: string]: any
 } {
   try {
@@ -334,9 +336,22 @@ export function decodeAccessToken(accessToken: string): {
       throw new Error('Invalid JWT token format')
     }
 
-    // Декодируем payload (вторая часть)
+    // Декодируем payload (вторая часть) - JWT использует base64url encoding
     const payload = parts[1]
-    const decodedPayload = Buffer.from(payload, 'base64').toString('utf-8')
+
+    // Конвертируем base64url в base64
+    let base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+
+    // Добавляем padding если нужно
+    const pad = base64.length % 4
+    if (pad) {
+      if (pad === 1) {
+        throw new Error('Invalid base64url string')
+      }
+      base64 += new Array(5 - pad).join('=')
+    }
+
+    const decodedPayload = Buffer.from(base64, 'base64').toString('utf-8')
     const parsed = JSON.parse(decodedPayload)
 
     return parsed

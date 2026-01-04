@@ -45,17 +45,31 @@ export async function verifyAuthToken(request: NextRequest): Promise<AuthUser | 
     const kcAccessToken = cookieStore.get('kc-access-token')?.value
     const authToken = cookieStore.get('auth-token')?.value
 
+    console.log('[AUTH] Checking tokens:', {
+      hasKcToken: !!kcAccessToken,
+      hasAuthToken: !!authToken,
+      kcTokenLength: kcAccessToken?.length,
+      authTokenLength: authToken?.length
+    })
+
     // Проверяем наличие токенов
     if (!kcAccessToken || !authToken) {
-      console.log('[AUTH] Missing tokens:', { hasKcToken: !!kcAccessToken, hasAuthToken: !!authToken })
+      console.log('[AUTH] Missing tokens - returning null')
       return null
     }
 
-    // Проверяем валидность Keycloak токена через introspection
-    const introspectionResult = await introspectToken(kcAccessToken)
+    // Декодируем и проверяем срок действия Keycloak токена
+    try {
+      const kcTokenPayload = decodeAccessToken(kcAccessToken)
+      const now = Math.floor(Date.now() / 1000)
 
-    if (!introspectionResult.active) {
-      console.log('[AUTH] Token is not active (possibly revoked or expired)')
+      // Проверяем не истёк ли токен
+      if (kcTokenPayload.exp && kcTokenPayload.exp < now) {
+        console.log('[AUTH] Keycloak token expired:', { exp: kcTokenPayload.exp, now })
+        return null
+      }
+    } catch (decodeError) {
+      console.error('[AUTH] Failed to decode Keycloak token:', decodeError)
       return null
     }
 
