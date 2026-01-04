@@ -65,34 +65,51 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms" \
 
 echo "Realm created/updated"
 
-# Create client
-echo "Creating client: ${CLIENT_ID}..."
-curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "clientId": "'"${CLIENT_ID}"'",
-    "enabled": true,
-    "clientAuthenticatorType": "client-secret",
-    "secret": "'"${CLIENT_SECRET}"'",
-    "rootUrl": "https://'"${DOMAIN}"'",
-    "baseUrl": "/admin",
-    "redirectUris": ["https://'"${DOMAIN}"'/*"],
-    "webOrigins": ["https://'"${DOMAIN}"'"],
-    "protocol": "openid-connect",
-    "publicClient": false,
-    "standardFlowEnabled": true,
-    "implicitFlowEnabled": false,
-    "directAccessGrantsEnabled": false,
-    "serviceAccountsEnabled": true,
-    "authorizationServicesEnabled": false,
-    "fullScopeAllowed": true,
-    "attributes": {
-      "post.logout.redirect.uris": "https://'"${DOMAIN}"'/*"
-    }
-  }' || echo "Client may already exist"
+# Create or update client
+echo "Creating/updating client: ${CLIENT_ID}..."
 
-echo "Client created/updated"
+# Check if client exists and get its ID
+CLIENT_UUID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients?clientId=${CLIENT_ID}" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Content-Type: application/json" | jq -r '.[0].id // empty')
+
+CLIENT_CONFIG='{
+  "clientId": "'"${CLIENT_ID}"'",
+  "enabled": true,
+  "clientAuthenticatorType": "client-secret",
+  "secret": "'"${CLIENT_SECRET}"'",
+  "rootUrl": "https://'"${DOMAIN}"'",
+  "baseUrl": "/admin",
+  "redirectUris": ["https://'"${DOMAIN}"'/*"],
+  "webOrigins": ["https://'"${DOMAIN}"'"],
+  "protocol": "openid-connect",
+  "publicClient": false,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": true,
+  "authorizationServicesEnabled": false,
+  "fullScopeAllowed": true,
+  "attributes": {
+    "post.logout.redirect.uris": "https://'"${DOMAIN}"'/*"
+  }
+}'
+
+if [ -n "$CLIENT_UUID" ]; then
+  echo "Client exists (UUID: ${CLIENT_UUID}), updating..."
+  curl -s -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients/${CLIENT_UUID}" \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "$CLIENT_CONFIG"
+  echo "Client updated with redirectUris: [https://${DOMAIN}/*]"
+else
+  echo "Creating new client..."
+  curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "$CLIENT_CONFIG"
+  echo "Client created with redirectUris: [https://${DOMAIN}/*]"
+fi
 
 # Create roles
 echo "Creating roles..."

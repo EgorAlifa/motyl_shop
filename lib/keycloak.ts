@@ -250,6 +250,13 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
   try {
     const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`
 
+    console.log('[DEBUG] Token exchange request:', {
+      tokenUrl,
+      redirectUri,
+      codeLength: code.length,
+      clientId: KEYCLOAK_CLIENT_ID,
+    })
+
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -266,14 +273,20 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Token exchange failed:', errorData)
+      console.error('[ERROR] Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        redirectUri,
+      })
       throw new Error(`Token exchange failed: ${response.status}`)
     }
 
     const tokens = await response.json()
+    console.log('[DEBUG] Token exchange successful')
     return tokens
   } catch (error: any) {
-    console.error('Error exchanging code for tokens:', error)
+    console.error('[ERROR] Error exchanging code for tokens:', error)
     throw new Error(error.message || 'Failed to exchange authorization code')
   }
 }
