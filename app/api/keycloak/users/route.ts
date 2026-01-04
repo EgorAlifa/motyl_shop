@@ -18,17 +18,28 @@ export const GET = withSuperAdmin(async (request: NextRequest) => {
     const users = await listKeycloakUsers()
 
     return NextResponse.json({
-      users: users.map((user) => ({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        enabled: user.enabled,
-        emailVerified: user.emailVerified,
-        role: user.attributes?.role?.[0] || 'admin',
-        permissions: user.attributes?.permissions || [],
-      })),
+      users: users.map((user) => {
+        // Определяем роль: сначала смотрим в realm roles, потом в attributes
+        let role: 'admin' | 'super_admin' = 'admin'
+
+        if (user.realmRoles?.includes('super-admin')) {
+          role = 'super_admin'
+        } else if (user.attributes?.role?.[0]) {
+          role = user.attributes.role[0] as 'admin' | 'super_admin'
+        }
+
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          enabled: user.enabled,
+          emailVerified: user.emailVerified,
+          role: role,
+          permissions: user.attributes?.permissions || [],
+        }
+      }),
     })
   } catch (error: any) {
     console.error('Error fetching Keycloak users:', error)

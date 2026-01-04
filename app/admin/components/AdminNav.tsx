@@ -19,14 +19,16 @@ export function AdminNav() {
   }
 
   const [adminRole, setAdminRole] = useState<string | null>(null)
+  const [adminPermissions, setAdminPermissions] = useState<string[]>([])
 
   useEffect(() => {
-    // Функция для обновления роли из sessionStorage
+    // Функция для обновления роли и permissions из sessionStorage
     const updateRole = () => {
       const adminData = sessionStorage.getItem('adminData')
       if (adminData) {
         const data = JSON.parse(adminData)
         setAdminRole(data.role)
+        setAdminPermissions(data.permissions || [])
       }
     }
 
@@ -77,6 +79,16 @@ export function AdminNav() {
       : []),
   ]
 
+  // Фильтруем ссылки на основе permissions
+  const filteredLinks = links.filter((link) => {
+    // SUPER_ADMIN видит все
+    if (adminRole === 'SUPER_ADMIN') {
+      return true
+    }
+    // Обычный Admin видит только разрешенные разделы
+    return adminPermissions.includes(link.permission)
+  })
+
   return (
     <>
       <nav className="bg-gradient-to-r from-blue-600 to-indigo-700 shadow-lg">
@@ -91,7 +103,7 @@ export function AdminNav() {
 
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-1">
-                {links.map((link) => {
+                {filteredLinks.map((link) => {
                   const Icon = link.icon
                   const isActive = pathname === link.href
 
@@ -149,7 +161,7 @@ export function AdminNav() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-gradient-to-r from-blue-700 to-indigo-800 shadow-lg">
           <div className="container mx-auto px-4 py-4 space-y-2">
-            {links.map((link) => {
+            {filteredLinks.map((link) => {
               const Icon = link.icon
               const isActive = pathname === link.href
 

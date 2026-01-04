@@ -114,12 +114,35 @@ export async function createKeycloakUser(
   }
 }
 
-// Получение списка пользователей
-export async function listKeycloakUsers(): Promise<KeycloakUser[]> {
+// Получение списка пользователей с их ролями
+export async function listKeycloakUsers(): Promise<
+  Array<KeycloakUser & { realmRoles?: string[] }>
+> {
   try {
     const client = await getKeycloakAdmin()
     const users = await client.users.find()
-    return users as KeycloakUser[]
+
+    // Для каждого пользователя получаем его realm роли
+    const usersWithRoles = await Promise.all(
+      users.map(async (user) => {
+        if (!user.id) return user
+
+        try {
+          const roles = await client.users.listRealmRoleMappings({ id: user.id })
+          const roleNames = roles.map((r) => r.name).filter(Boolean) as string[]
+
+          return {
+            ...user,
+            realmRoles: roleNames,
+          }
+        } catch (error) {
+          console.error(`Failed to get roles for user ${user.id}:`, error)
+          return user
+        }
+      })
+    )
+
+    return usersWithRoles as Array<KeycloakUser & { realmRoles?: string[] }>
   } catch (error) {
     console.error('Error listing Keycloak users:', error)
     throw new Error('Failed to list users from Keycloak')
