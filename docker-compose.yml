@@ -31,6 +31,7 @@ services:
       KC_DB_USERNAME: motyluser
       KC_DB_PASSWORD: motylpass
       KC_HOSTNAME_URL: https://${DOMAIN:-localhost}/auth
+      KC_HOSTNAME_STRICT: false
       KC_PROXY: edge
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
