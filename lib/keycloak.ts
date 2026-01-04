@@ -178,7 +178,9 @@ export async function resetKeycloakUserPassword(
 export async function verifyKeycloakToken(token: string): Promise<{
   sub: string
   email: string
-  preferred_username: string
+  preferred_username?: string
+  role?: string
+  permissions?: string[]
   realm_access?: { roles: string[] }
 }> {
   try {
