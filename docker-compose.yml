@@ -61,6 +61,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    extra_hosts:
+      - "${DOMAIN:-localhost}:host-gateway"
     environment:
       DATABASE_URL: postgresql://motyluser:motylpass@postgres:5432/motylshop
       KEYCLOAK_URL: http://keycloak:8080/auth
