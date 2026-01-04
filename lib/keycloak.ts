@@ -324,6 +324,34 @@ export async function getUserInfo(accessToken: string): Promise<{
   }
 }
 
+// Декодирование access_token для получения ролей
+export function decodeAccessToken(accessToken: string): {
+  sub: string
+  email?: string
+  preferred_username?: string
+  realm_access?: { roles: string[] }
+  resource_access?: any
+  [key: string]: any
+} {
+  try {
+    // JWT состоит из 3 частей разделенных точкой: header.payload.signature
+    const parts = accessToken.split('.')
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT token format')
+    }
+
+    // Декодируем payload (вторая часть)
+    const payload = parts[1]
+    const decodedPayload = Buffer.from(payload, 'base64').toString('utf-8')
+    const parsed = JSON.parse(decodedPayload)
+
+    return parsed
+  } catch (error: any) {
+    console.error('Error decoding access token:', error)
+    throw new Error('Failed to decode access token')
+  }
+}
+
 // Logout из Keycloak
 export async function logoutFromKeycloak(refreshToken: string): Promise<void> {
   try {

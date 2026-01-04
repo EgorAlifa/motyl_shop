@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exchangeCodeForTokens, getUserInfo, createSessionToken } from '@/lib/keycloak'
+import { exchangeCodeForTokens, getUserInfo, decodeAccessToken, createSessionToken } from '@/lib/keycloak'
 import { cookies } from 'next/headers'
 
 // In-memory cache для предотвращения повторного использования authorization codes
@@ -57,18 +57,18 @@ export async function GET(request: NextRequest) {
     // Обмениваем code на tokens
     const tokens = await exchangeCodeForTokens(code, redirectUri)
 
-    // Получаем информацию о пользователе
-    const userInfo = await getUserInfo(tokens.access_token)
+    // Декодируем access_token чтобы получить роли
+    const tokenPayload = decodeAccessToken(tokens.access_token)
 
-    console.log('[DEBUG] User info received:', {
-      email: userInfo.email,
-      sub: userInfo.sub,
-      realm_access: userInfo.realm_access,
-      allRoles: userInfo.realm_access?.roles || [],
+    console.log('[DEBUG] Access token decoded:', {
+      email: tokenPayload.email || tokenPayload.preferred_username,
+      sub: tokenPayload.sub,
+      realm_access: tokenPayload.realm_access,
+      allRoles: tokenPayload.realm_access?.roles || [],
     })
 
     // Проверяем роли пользователя
-    const roles = userInfo.realm_access?.roles || []
+    const roles = tokenPayload.realm_access?.roles || []
     const isSuperAdmin = roles.includes('super-admin')
     const isAdmin = roles.includes('admin') || isSuperAdmin
 
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     if (!isAdmin && !isSuperAdmin) {
       console.error('[ERROR] User has insufficient permissions:', {
-        email: userInfo.email,
+        email: tokenPayload.email || tokenPayload.preferred_username,
         roles,
       })
       return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
 
     // Создаем JWT токен для нашего приложения
     const sessionToken = await createSessionToken({
-      id: userInfo.sub,
-      email: userInfo.email,
+      id: tokenPayload.sub,
+      email: tokenPayload.email || tokenPayload.preferred_username || '',
       role: isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN',
       permissions: roles,
     })
