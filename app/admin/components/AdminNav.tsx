@@ -21,13 +21,25 @@ export function AdminNav() {
   const [adminRole, setAdminRole] = useState<string | null>(null)
 
   useEffect(() => {
-    // Получаем информацию об админе из sessionStorage при каждом изменении роута
-    const adminData = sessionStorage.getItem('adminData')
-    if (adminData) {
-      const data = JSON.parse(adminData)
-      setAdminRole(data.role)
+    // Функция для обновления роли из sessionStorage
+    const updateRole = () => {
+      const adminData = sessionStorage.getItem('adminData')
+      if (adminData) {
+        const data = JSON.parse(adminData)
+        setAdminRole(data.role)
+      }
     }
-  }, [pathname]) // Добавлена зависимость от pathname
+
+    // Обновляем роль при монтировании и изменении роута
+    updateRole()
+
+    // Слушаем изменения в sessionStorage (срабатывает от SessionSync)
+    window.addEventListener('storage', updateRole)
+
+    return () => {
+      window.removeEventListener('storage', updateRole)
+    }
+  }, [pathname])
 
   // Закрываем меню при смене маршрута
   useEffect(() => {

@@ -347,9 +347,11 @@ export function decodeAccessToken(accessToken: string): {
 // Logout из Keycloak
 export async function logoutFromKeycloak(refreshToken: string): Promise<void> {
   try {
-    const logoutUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout`
+    // Use external Keycloak URL to match token issuer
+    const externalKeycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || KEYCLOAK_URL
+    const logoutUrl = `${externalKeycloakUrl}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout`
 
-    await fetch(logoutUrl, {
+    const response = await fetch(logoutUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -360,6 +362,12 @@ export async function logoutFromKeycloak(refreshToken: string): Promise<void> {
         refresh_token: refreshToken,
       }),
     })
+
+    if (!response.ok) {
+      console.error('Keycloak logout failed:', response.status, response.statusText)
+    } else {
+      console.log('Successfully logged out from Keycloak')
+    }
   } catch (error) {
     console.error('Error logging out from Keycloak:', error)
     // Не выбрасываем ошибку, так как logout должен всегда успешно завершаться на клиенте

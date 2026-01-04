@@ -2,6 +2,23 @@
 
 import { useEffect } from 'react'
 
+// Функция для декодирования base64url (используется в JWT)
+function base64UrlDecode(str: string): string {
+  // Заменяем символы base64url на base64
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+
+  // Добавляем padding если нужно
+  const pad = base64.length % 4
+  if (pad) {
+    if (pad === 1) {
+      throw new Error('Invalid base64url string')
+    }
+    base64 += new Array(5 - pad).join('=')
+  }
+
+  return atob(base64)
+}
+
 export function SessionSync() {
   useEffect(() => {
     // Проверяем есть ли уже данные в sessionStorage
@@ -24,11 +41,12 @@ export function SessionSync() {
       // Декодируем JWT (берем payload - вторую часть)
       const parts = token.split('.')
       if (parts.length !== 3) {
-        console.error('Invalid JWT format')
+        console.error('[SessionSync] Invalid JWT format')
         return
       }
 
-      const payload = JSON.parse(atob(parts[1]))
+      const payloadJson = base64UrlDecode(parts[1])
+      const payload = JSON.parse(payloadJson)
 
       // Сохраняем данные админа в sessionStorage
       const adminData = {
@@ -40,6 +58,9 @@ export function SessionSync() {
 
       sessionStorage.setItem('adminData', JSON.stringify(adminData))
       console.log('[SessionSync] Admin data saved to sessionStorage:', adminData)
+
+      // Trigger a storage event to update AdminNav
+      window.dispatchEvent(new Event('storage'))
     } catch (error) {
       console.error('[SessionSync] Failed to decode token:', error)
     }
