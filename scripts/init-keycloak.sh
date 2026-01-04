@@ -131,9 +131,83 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/roles" \
 
 echo "Roles created/updated"
 
+# Create first super-admin user if ADMIN_EMAIL and ADMIN_PASSWORD are provided
+if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+  echo "Creating first super-admin user: ${ADMIN_EMAIL}..."
+
+  # Check if user already exists
+  EXISTING_USER=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?email=${ADMIN_EMAIL}" \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json" | jq -r '.[0].id // empty')
+
+  if [ -n "$EXISTING_USER" ]; then
+    echo "User ${ADMIN_EMAIL} already exists (ID: ${EXISTING_USER}), skipping creation"
+  else
+    # Create user
+    USER_RESPONSE=$(curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users" \
+      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "username": "'"${ADMIN_EMAIL}"'",
+        "email": "'"${ADMIN_EMAIL}"'",
+        "enabled": true,
+        "emailVerified": true
+      }')
+
+    # Get created user ID
+    USER_ID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users?email=${ADMIN_EMAIL}" \
+      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+      -H "Content-Type: application/json" | jq -r '.[0].id')
+
+    if [ -n "$USER_ID" ]; then
+      # Set password
+      curl -s -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users/${USER_ID}/reset-password" \
+        -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "type": "password",
+          "value": "'"${ADMIN_PASSWORD}"'",
+          "temporary": false
+        }'
+
+      # Get super-admin role ID
+      SUPER_ADMIN_ROLE=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/roles/super-admin" \
+        -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+        -H "Content-Type: application/json")
+
+      ROLE_ID=$(echo "$SUPER_ADMIN_ROLE" | jq -r '.id')
+      ROLE_NAME=$(echo "$SUPER_ADMIN_ROLE" | jq -r '.name')
+
+      # Assign super-admin role
+      curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users/${USER_ID}/role-mappings/realm" \
+        -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d '[{
+          "id": "'"${ROLE_ID}"'",
+          "name": "'"${ROLE_NAME}"'"
+        }]'
+
+      echo "Super-admin user created successfully!"
+      echo "  Email: ${ADMIN_EMAIL}"
+      echo "  Password: (as provided)"
+    else
+      echo "Failed to create user"
+    fi
+  fi
+else
+  echo "ADMIN_EMAIL or ADMIN_PASSWORD not provided, skipping user creation"
+fi
+
+echo ""
 echo "Keycloak initialization completed successfully!"
 echo ""
 echo "Keycloak admin console: ${KEYCLOAK_URL}/admin"
 echo "Username: ${ADMIN_USER}"
 echo "Realm: ${REALM_NAME}"
 echo "Client ID: ${CLIENT_ID}"
+echo ""
+if [ -n "$ADMIN_EMAIL" ]; then
+  echo "Ваш Super Admin:"
+  echo "  Email: ${ADMIN_EMAIL}"
+  echo "  Пароль: (as entered during setup)"
+fi

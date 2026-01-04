@@ -247,8 +247,8 @@ read -p "Enter SMTP user (email): " SMTP_USER
 read -sp "Enter SMTP password: " SMTP_PASSWORD
 echo
 
-read -p "Enter admin email: " ADMIN_EMAIL
-read -sp "Enter admin password: " ADMIN_PASSWORD
+read -e -p "Enter admin email (for Keycloak super-admin): " ADMIN_EMAIL
+read -esp "Enter admin password (for Keycloak super-admin): " ADMIN_PASSWORD
 echo
 
 # Generate random secrets
