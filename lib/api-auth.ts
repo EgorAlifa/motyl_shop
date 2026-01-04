@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyKeycloakToken } from './keycloak'
+import { verifyKeycloakToken, introspectToken, decodeAccessToken } from './keycloak'
 import { cookies } from 'next/headers'
 
 // Интерфейс для данных пользователя из токена
@@ -42,22 +42,34 @@ export async function checkRateLimit(
 export async function verifyAuthToken(request: NextRequest): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies()
-    const token = cookieStore.get('auth-token')?.value
+    const kcAccessToken = cookieStore.get('kc-access-token')?.value
+    const authToken = cookieStore.get('auth-token')?.value
 
-    if (!token) {
+    // Проверяем наличие токенов
+    if (!kcAccessToken || !authToken) {
+      console.log('[AUTH] Missing tokens:', { hasKcToken: !!kcAccessToken, hasAuthToken: !!authToken })
       return null
     }
 
-    const payload = await verifyKeycloakToken(token)
+    // Проверяем валидность Keycloak токена через introspection
+    const introspectionResult = await introspectToken(kcAccessToken)
+
+    if (!introspectionResult.active) {
+      console.log('[AUTH] Token is not active (possibly revoked or expired)')
+      return null
+    }
+
+    // Токен валиден, парсим auth-token для получения ролей
+    const payload = await verifyKeycloakToken(authToken)
 
     return {
       id: payload.sub,
       email: payload.email,
-      role: payload.realm_access?.roles[0] || 'admin',
-      permissions: payload.realm_access?.roles || [],
+      role: payload.role || 'ADMIN',
+      permissions: payload.permissions || [],
     }
   } catch (error) {
-    console.error('Token verification failed:', error)
+    console.error('[AUTH] Token verification failed:', error)
     return null
   }
 }

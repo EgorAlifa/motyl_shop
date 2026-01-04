@@ -1,35 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
-import { cookies } from 'next/headers'
+import { withSuperAdmin } from '@/lib/api-auth'
 
-export async function POST(request: Request) {
+export const POST = withSuperAdmin(async (request: NextRequest, user) => {
   try {
     const body = await request.json()
     const { email, password, name, permissions } = body
-
-    // Проверяем авторизацию текущего пользователя
-    const cookieStore = await cookies()
-    const adminId = cookieStore.get('admin_id')?.value
-
-    if (!adminId) {
-      return NextResponse.json(
-        { error: 'Необходима авторизация' },
-        { status: 401 }
-      )
-    }
-
-    // Проверяем, что текущий пользователь - суперадмин
-    const currentAdmin = await prisma.admin.findUnique({
-      where: { id: adminId },
-    })
-
-    if (!currentAdmin || currentAdmin.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        { error: 'Недостаточно прав. Только суперадмин может создавать администраторов.' },
-        { status: 403 }
-      )
-    }
 
     // Проверяем, не существует ли уже такой admin
     const existingAdmin = await prisma.admin.findUnique({
@@ -74,4 +51,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-}
+})

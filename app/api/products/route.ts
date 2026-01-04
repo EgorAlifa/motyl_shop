@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { withAuth } from '@/lib/api-auth'
 
 const productSchema = z.object({
   name: z.string().min(2),
@@ -16,7 +17,7 @@ const productSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const body = await request.json()
     const validatedData = productSchema.parse(body)
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 export async function GET() {
   try {

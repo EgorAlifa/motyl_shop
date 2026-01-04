@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays, startOfDay, endOfDay } from 'date-fns'
+import { withAuth } from '@/lib/api-auth'
 
-export async function GET() {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
     const now = new Date()
     const thirtyDaysAgo = subDays(now, 30)
@@ -163,4 +164,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

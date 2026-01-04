@@ -1,31 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
+import { withSuperAdmin } from '@/lib/api-auth'
 
-export async function GET() {
+export const GET = withSuperAdmin(async (request: NextRequest) => {
   try {
-    // Проверяем авторизацию
-    const cookieStore = await cookies()
-    const adminId = cookieStore.get('admin_id')?.value
-
-    if (!adminId) {
-      return NextResponse.json(
-        { error: 'Необходима авторизация' },
-        { status: 401 }
-      )
-    }
-
-    // Проверяем, что текущий пользователь - суперадмин
-    const currentAdmin = await prisma.admin.findUnique({
-      where: { id: adminId },
-    })
-
-    if (!currentAdmin || currentAdmin.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        { error: 'Недостаточно прав' },
-        { status: 403 }
-      )
-    }
 
     // Получаем всех админов
     const admins = await prisma.admin.findMany({
@@ -50,4 +28,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})

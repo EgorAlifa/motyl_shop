@@ -36,6 +36,7 @@ export function middleware(request: NextRequest) {
     // Публичные API endpoints (не требуют авторизации)
     const publicEndpoints = [
       '/api/auth/login',
+      '/api/auth/logout',
       '/api/orders', // POST для создания заказов из публичной формы
       '/api/products', // GET для каталога
     ]
@@ -56,11 +57,16 @@ export function middleware(request: NextRequest) {
     })
 
     if (!isPublicEndpoint) {
-      const token = request.cookies.get('auth-token') || request.cookies.get('admin-session')
+      // Проверяем наличие обоих токенов для Keycloak OAuth2 авторизации
+      const authToken = request.cookies.get('auth-token')
+      const kcAccessToken = request.cookies.get('kc-access-token')
 
-      if (!token) {
+      if (!authToken || !kcAccessToken) {
         return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 })
       }
+
+      // Валидация токенов происходит в API endpoints через lib/api-auth.ts
+      // (избегаем повторного introspection на каждый запрос в middleware)
     }
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendOrderEmail } from '@/lib/email'
 import { generateOrderNumber } from '@/lib/utils'
+import { withAuth } from '@/lib/api-auth'
 import { z } from 'zod'
 
 const orderSchema = z.object({
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
     const orders = await prisma.order.findMany({
       include: {
@@ -195,4 +196,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

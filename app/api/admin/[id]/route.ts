@@ -1,43 +1,29 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
+import { withSuperAdmin, AuthUser } from '@/lib/api-auth'
 import bcrypt from 'bcrypt'
 
 // Обновить админа
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const PATCH = withSuperAdmin(async (
+  request: NextRequest,
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
     const body = await request.json()
     const { name, permissions, isBlocked, password } = body
+    const targetId = context?.params?.id
 
-    // Проверяем авторизацию
-    const cookieStore = await cookies()
-    const adminId = cookieStore.get('admin_id')?.value
-
-    if (!adminId) {
+    if (!targetId) {
       return NextResponse.json(
-        { error: 'Необходима авторизация' },
-        { status: 401 }
-      )
-    }
-
-    // Проверяем, что текущий пользователь - суперадмин
-    const currentAdmin = await prisma.admin.findUnique({
-      where: { id: adminId },
-    })
-
-    if (!currentAdmin || currentAdmin.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        { error: 'Недостаточно прав' },
-        { status: 403 }
+        { error: 'ID администратора не указан' },
+        { status: 400 }
       )
     }
 
     // Проверяем, что редактируемый админ существует
     const targetAdmin = await prisma.admin.findUnique({
-      where: { id: params.id },
+      where: { id: targetId },
     })
 
     if (!targetAdmin) {
@@ -48,7 +34,7 @@ export async function PATCH(
     }
 
     // Нельзя редактировать себя (кроме пароля)
-    if (params.id === adminId && (permissions || isBlocked !== undefined)) {
+    if (targetId === user.id && (permissions || isBlocked !== undefined)) {
       return NextResponse.json(
         { error: 'Нельзя изменять свои права и статус блокировки' },
         { status: 400 }
@@ -56,7 +42,7 @@ export async function PATCH(
     }
 
     // Нельзя редактировать другого суперадмина
-    if (targetAdmin.role === 'SUPER_ADMIN' && targetAdmin.id !== adminId) {
+    if (targetAdmin.role === 'SUPER_ADMIN' && targetAdmin.id !== user.id) {
       return NextResponse.json(
         { error: 'Нельзя редактировать других суперадминов' },
         { status: 403 }
@@ -73,7 +59,7 @@ export async function PATCH(
 
     // Обновляем админа
     const updatedAdmin = await prisma.admin.update({
-      where: { id: params.id },
+      where: { id: targetId },
       data: updateData,
       select: {
         id: true,
@@ -98,39 +84,26 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+})
 
 // Удалить админа
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const DELETE = withSuperAdmin(async (
+  request: NextRequest,
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
-    // Проверяем авторизацию
-    const cookieStore = await cookies()
-    const adminId = cookieStore.get('admin_id')?.value
+    const targetId = context?.params?.id
 
-    if (!adminId) {
+    if (!targetId) {
       return NextResponse.json(
-        { error: 'Необходима авторизация' },
-        { status: 401 }
-      )
-    }
-
-    // Проверяем, что текущий пользователь - суперадмин
-    const currentAdmin = await prisma.admin.findUnique({
-      where: { id: adminId },
-    })
-
-    if (!currentAdmin || currentAdmin.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        { error: 'Недостаточно прав' },
-        { status: 403 }
+        { error: 'ID администратора не указан' },
+        { status: 400 }
       )
     }
 
     // Нельзя удалить себя
-    if (params.id === adminId) {
+    if (targetId === user.id) {
       return NextResponse.json(
         { error: 'Нельзя удалить самого себя' },
         { status: 400 }
@@ -139,7 +112,7 @@ export async function DELETE(
 
     // Проверяем, что удаляемый админ существует
     const targetAdmin = await prisma.admin.findUnique({
-      where: { id: params.id },
+      where: { id: targetId },
     })
 
     if (!targetAdmin) {
@@ -159,7 +132,7 @@ export async function DELETE(
 
     // Удаляем админа
     await prisma.admin.delete({
-      where: { id: params.id },
+      where: { id: targetId },
     })
 
     return NextResponse.json({
@@ -172,4 +145,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+})

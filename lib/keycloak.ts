@@ -344,6 +344,44 @@ export function decodeAccessToken(accessToken: string): {
   }
 }
 
+// Token introspection - проверка валидности токена в Keycloak
+export async function introspectToken(token: string): Promise<{
+  active: boolean
+  sub?: string
+  email?: string
+  preferred_username?: string
+  realm_access?: { roles: string[] }
+  exp?: number
+  iat?: number
+}> {
+  try {
+    const introspectionUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token/introspect`
+
+    const response = await fetch(introspectionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: KEYCLOAK_CLIENT_ID,
+        client_secret: KEYCLOAK_CLIENT_SECRET,
+        token: token,
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('[ERROR] Token introspection failed:', response.status, response.statusText)
+      return { active: false }
+    }
+
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error('[ERROR] Error during token introspection:', error)
+    return { active: false }
+  }
+}
+
 // Logout из Keycloak
 export async function logoutFromKeycloak(refreshToken: string): Promise<void> {
   try {

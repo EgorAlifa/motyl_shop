@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withAuth, AuthUser } from '@/lib/api-auth'
 
-export async function PATCH(
+export const PATCH = withAuth(async (
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
     const body = await request.json()
+    const productId = context?.params?.id
+
+    if (!productId) {
+      return NextResponse.json(
+        { error: 'ID товара не указан' },
+        { status: 400 }
+      )
+    }
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id: productId },
       data: body,
     })
 
@@ -21,15 +31,25 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(
+export const DELETE = withAuth(async (
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
+    const productId = context?.params?.id
+
+    if (!productId) {
+      return NextResponse.json(
+        { error: 'ID товара не указан' },
+        { status: 400 }
+      )
+    }
+
     await prisma.product.delete({
-      where: { id: params.id },
+      where: { id: productId },
     })
 
     return NextResponse.json({ success: true })
@@ -40,4 +60,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+})

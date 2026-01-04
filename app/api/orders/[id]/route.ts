@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withAuth, AuthUser } from '@/lib/api-auth'
 
-export async function PATCH(
+export const PATCH = withAuth(async (
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
     const body = await request.json()
     const { status } = body
+    const orderId = context?.params?.id
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: 'ID заявки не указан' },
+        { status: 400 }
+      )
+    }
 
     if (!status) {
       return NextResponse.json(
@@ -17,7 +27,7 @@ export async function PATCH(
     }
 
     const order = await prisma.order.update({
-      where: { id: params.id },
+      where: { id: orderId },
       data: { status },
       include: {
         items: {
@@ -36,15 +46,25 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(
+export const DELETE = withAuth(async (
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  user: AuthUser,
+  context?: { params: { id: string } }
+) => {
   try {
+    const orderId = context?.params?.id
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: 'ID заявки не указан' },
+        { status: 400 }
+      )
+    }
+
     await prisma.order.delete({
-      where: { id: params.id },
+      where: { id: orderId },
     })
 
     return NextResponse.json({ success: true })
@@ -55,4 +75,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+})
