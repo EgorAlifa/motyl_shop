@@ -30,7 +30,7 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: motyluser
       KC_DB_PASSWORD: motylpass
-      KC_HOSTNAME: ${DOMAIN:-localhost}
+      KC_HOSTNAME_URL: https://${DOMAIN:-localhost}/auth
       KC_PROXY: edge
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
