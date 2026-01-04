@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
   try {
     // Проверяем авторизацию
     const cookieStore = await cookies()
-    const adminSession = cookieStore.get('admin-session')?.value
+    const authToken = cookieStore.get('auth-token')?.value
 
-    if (!adminSession) {
+    if (!authToken) {
       return NextResponse.json(
         { error: 'Необходима авторизация' },
         { status: 401 }
