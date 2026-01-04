@@ -289,7 +289,9 @@ export async function getUserInfo(accessToken: string): Promise<{
   realm_access?: { roles: string[] }
 }> {
   try {
-    const userInfoUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`
+    // Use external Keycloak URL to match token issuer
+    const externalKeycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || KEYCLOAK_URL
+    const userInfoUrl = `${externalKeycloakUrl}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`
 
     const response = await fetch(userInfoUrl, {
       headers: {
