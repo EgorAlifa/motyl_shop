@@ -60,12 +60,30 @@ export async function GET(request: NextRequest) {
     // Получаем информацию о пользователе
     const userInfo = await getUserInfo(tokens.access_token)
 
+    console.log('[DEBUG] User info received:', {
+      email: userInfo.email,
+      sub: userInfo.sub,
+      realm_access: userInfo.realm_access,
+      allRoles: userInfo.realm_access?.roles || [],
+    })
+
     // Проверяем роли пользователя
     const roles = userInfo.realm_access?.roles || []
     const isSuperAdmin = roles.includes('super-admin')
     const isAdmin = roles.includes('admin') || isSuperAdmin
 
+    console.log('[DEBUG] Role check:', {
+      roles,
+      isSuperAdmin,
+      isAdmin,
+      hasPermission: isAdmin || isSuperAdmin,
+    })
+
     if (!isAdmin && !isSuperAdmin) {
+      console.error('[ERROR] User has insufficient permissions:', {
+        email: userInfo.email,
+        roles,
+      })
       return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
     }
 
