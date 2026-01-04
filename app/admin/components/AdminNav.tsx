@@ -13,7 +13,8 @@ export function AdminNav() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/admin/login')
+    sessionStorage.removeItem('adminData')
+    router.push('/')
     router.refresh()
   }
 

@@ -15,13 +15,19 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Clear all auth cookies
+    // Create response
     const response = NextResponse.json({ success: true })
 
-    cookieStore.delete('auth-token')
-    cookieStore.delete('kc-access-token')
-    cookieStore.delete('kc-refresh-token')
-    cookieStore.delete('admin-session') // legacy cookie
+    // Delete cookies by setting them to expired
+    const cookieOptions = {
+      maxAge: 0,
+      path: '/',
+    }
+
+    response.cookies.set('auth-token', '', cookieOptions)
+    response.cookies.set('kc-access-token', '', cookieOptions)
+    response.cookies.set('kc-refresh-token', '', cookieOptions)
+    response.cookies.set('admin-session', '', cookieOptions) // legacy cookie
 
     return response
   } catch (error) {

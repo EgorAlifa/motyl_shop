@@ -60,24 +60,10 @@ export async function GET(request: NextRequest) {
     // Декодируем access_token чтобы получить роли
     const tokenPayload = decodeAccessToken(tokens.access_token)
 
-    console.log('[DEBUG] Access token decoded:', {
-      email: tokenPayload.email || tokenPayload.preferred_username,
-      sub: tokenPayload.sub,
-      realm_access: tokenPayload.realm_access,
-      allRoles: tokenPayload.realm_access?.roles || [],
-    })
-
     // Проверяем роли пользователя
     const roles = tokenPayload.realm_access?.roles || []
     const isSuperAdmin = roles.includes('super-admin')
     const isAdmin = roles.includes('admin') || isSuperAdmin
-
-    console.log('[DEBUG] Role check:', {
-      roles,
-      isSuperAdmin,
-      isAdmin,
-      hasPermission: isAdmin || isSuperAdmin,
-    })
 
     if (!isAdmin && !isSuperAdmin) {
       console.error('[ERROR] User has insufficient permissions:', {
