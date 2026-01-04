@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AdminNav } from '../components/AdminNav'
 import { formatPrice, categoryNames } from '@/lib/utils'
 import { Plus, Edit, Trash2, Check, X } from 'lucide-react'
 
@@ -57,7 +56,6 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AdminNav />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -69,7 +67,6 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">

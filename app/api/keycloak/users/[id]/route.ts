@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteKeycloakUser, updateKeycloakUser, resetKeycloakUserPassword } from '@/lib/keycloak'
 import { withSuperAdmin } from '@/lib/api-auth'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 
 const updateUserSchema = z.object({
@@ -17,7 +18,11 @@ export const DELETE = withSuperAdmin(
     try {
       const { id } = context!.params
 
-      await deleteKeycloakUser(id)
+      // Получаем access token пользователя из cookies
+      const cookieStore = await cookies()
+      const accessToken = cookieStore.get('kc-access-token')?.value
+
+      await deleteKeycloakUser(id, accessToken)
 
       return NextResponse.json({
         success: true,
@@ -41,15 +46,19 @@ export const PATCH = withSuperAdmin(
       const body = await request.json()
       const validatedData = updateUserSchema.parse(body)
 
+      // Получаем access token пользователя из cookies
+      const cookieStore = await cookies()
+      const accessToken = cookieStore.get('kc-access-token')?.value
+
       // Если передан пароль, сбрасываем его отдельно
       if (validatedData.password) {
-        await resetKeycloakUserPassword(id, validatedData.password, false)
+        await resetKeycloakUserPassword(id, validatedData.password, false, accessToken)
         delete validatedData.password
       }
 
       // Обновляем остальные данные
       if (Object.keys(validatedData).length > 0) {
-        await updateKeycloakUser(id, validatedData)
+        await updateKeycloakUser(id, validatedData, accessToken)
       }
 
       return NextResponse.json({

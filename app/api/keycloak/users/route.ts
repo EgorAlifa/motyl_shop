@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createKeycloakUser, listKeycloakUsers } from '@/lib/keycloak'
 import { withSuperAdmin } from '@/lib/api-auth'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 
 const createUserSchema = z.object({
@@ -14,7 +15,11 @@ const createUserSchema = z.object({
 // GET /api/keycloak/users - получить список пользователей
 export const GET = withSuperAdmin(async (request: NextRequest) => {
   try {
-    const users = await listKeycloakUsers()
+    // Получаем access token пользователя из cookies
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('kc-access-token')?.value
+
+    const users = await listKeycloakUsers(accessToken)
 
     return NextResponse.json({
       users: users.map((user) => ({
@@ -43,7 +48,11 @@ export const POST = withSuperAdmin(async (request: NextRequest) => {
     const body = await request.json()
     const validatedData = createUserSchema.parse(body)
 
-    const user = await createKeycloakUser(validatedData)
+    // Получаем access token пользователя из cookies
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('kc-access-token')?.value
+
+    const user = await createKeycloakUser(validatedData, accessToken)
 
     return NextResponse.json({
       success: true,

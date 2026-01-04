@@ -68,14 +68,8 @@ export function AdminNav() {
     ...(adminRole === 'SUPER_ADMIN'
       ? [
           {
-            href: '/admin/manage-admins',
-            label: 'Администраторы',
-            icon: UserPlus,
-            permission: 'admins',
-          },
-          {
             href: '/admin/keycloak-users',
-            label: 'Keycloak',
+            label: 'Администраторы',
             icon: Shield,
             permission: 'keycloak',
           },

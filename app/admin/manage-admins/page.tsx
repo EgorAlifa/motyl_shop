@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AdminNav } from '../components/AdminNav'
 import { formatDate } from '@/lib/utils'
 import { Users, Plus, Edit, Trash2, Lock, Unlock, Check, X } from 'lucide-react'
 
@@ -85,7 +84,6 @@ export default function ManageAdminsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40">
-        <AdminNav />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -97,7 +95,6 @@ export default function ManageAdminsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40">
-      <AdminNav />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
