@@ -2,23 +2,6 @@
 
 import { useEffect } from 'react'
 
-// Функция для декодирования base64url (используется в JWT)
-function base64UrlDecode(str: string): string {
-  // Заменяем символы base64url на base64
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
-
-  // Добавляем padding если нужно
-  const pad = base64.length % 4
-  if (pad) {
-    if (pad === 1) {
-      throw new Error('Invalid base64url string')
-    }
-    base64 += new Array(5 - pad).join('=')
-  }
-
-  return atob(base64)
-}
-
 export function SessionSync() {
   useEffect(() => {
     console.log('[SessionSync] Component mounted, starting sync...')
@@ -30,50 +13,42 @@ export function SessionSync() {
       return // Already synced
     }
 
-    // Получаем auth-token из cookies
-    const cookies = document.cookie.split(';')
-    console.log('[SessionSync] Cookies found:', cookies.length)
+    // Запрашиваем данные пользователя с сервера (httpOnly cookies недоступны в JS)
+    fetch('/api/auth/me')
+      .then((res) => {
+        console.log('[SessionSync] API response status:', res.status)
+        if (!res.ok) {
+          console.log('[SessionSync] Not authenticated')
+          return null
+        }
+        return res.json()
+      })
+      .then((data) => {
+        if (!data || !data.authenticated) {
+          console.log('[SessionSync] User not authenticated')
+          return
+        }
 
-    const authTokenCookie = cookies.find((c) => c.trim().startsWith('auth-token='))
+        console.log('[SessionSync] User data received:', data.user)
 
-    if (!authTokenCookie) {
-      console.log('[SessionSync] No auth-token cookie found')
-      return // Not logged in
-    }
+        // Сохраняем данные админа в sessionStorage
+        const adminData = {
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role, // SUPER_ADMIN or ADMIN
+          permissions: data.user.permissions || [],
+        }
 
-    const token = authTokenCookie.split('=')[1]
-    console.log('[SessionSync] Found auth-token, length:', token?.length)
+        sessionStorage.setItem('adminData', JSON.stringify(adminData))
+        console.log('[SessionSync] Admin data saved to sessionStorage:', adminData)
 
-    try {
-      // Декодируем JWT (берем payload - вторую часть)
-      const parts = token.split('.')
-      if (parts.length !== 3) {
-        console.error('[SessionSync] Invalid JWT format, parts:', parts.length)
-        return
-      }
-
-      const payloadJson = base64UrlDecode(parts[1])
-      const payload = JSON.parse(payloadJson)
-
-      console.log('[SessionSync] Decoded payload:', payload)
-
-      // Сохраняем данные админа в sessionStorage
-      const adminData = {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role, // SUPER_ADMIN or ADMIN
-        permissions: payload.permissions || [],
-      }
-
-      sessionStorage.setItem('adminData', JSON.stringify(adminData))
-      console.log('[SessionSync] Admin data saved to sessionStorage:', adminData)
-
-      // Trigger a storage event to update AdminNav
-      window.dispatchEvent(new Event('storage'))
-      console.log('[SessionSync] Storage event dispatched')
-    } catch (error) {
-      console.error('[SessionSync] Failed to decode token:', error)
-    }
+        // Trigger a storage event to update AdminNav
+        window.dispatchEvent(new Event('storage'))
+        console.log('[SessionSync] Storage event dispatched')
+      })
+      .catch((error) => {
+        console.error('[SessionSync] Failed to fetch user data:', error)
+      })
   }, [])
 
   return null // This component doesn't render anything
