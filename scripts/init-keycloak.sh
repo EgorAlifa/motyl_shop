@@ -75,10 +75,10 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
     "enabled": true,
     "clientAuthenticatorType": "client-secret",
     "secret": "'"${CLIENT_SECRET}"'",
-    "rootUrl": "*",
+    "rootUrl": "https://'"${DOMAIN}"'",
     "baseUrl": "/admin",
-    "redirectUris": ["*"],
-    "webOrigins": ["*"],
+    "redirectUris": ["https://'"${DOMAIN}"'/*"],
+    "webOrigins": ["https://'"${DOMAIN}"'"],
     "protocol": "openid-connect",
     "publicClient": false,
     "standardFlowEnabled": true,
@@ -88,7 +88,7 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients" \
     "authorizationServicesEnabled": false,
     "fullScopeAllowed": true,
     "attributes": {
-      "post.logout.redirect.uris": "*"
+      "post.logout.redirect.uris": "https://'"${DOMAIN}"'/*"
     }
   }' || echo "Client may already exist"
 
