@@ -88,7 +88,7 @@ CLIENT_CONFIG='{
   "implicitFlowEnabled": false,
   "directAccessGrantsEnabled": false,
   "serviceAccountsEnabled": true,
-  "authorizationServicesEnabled": false,
+  "authorizationServicesEnabled": true,
   "fullScopeAllowed": true,
   "attributes": {
     "post.logout.redirect.uris": "https://'"${DOMAIN}"'/*"
@@ -110,6 +110,86 @@ else
     -d "$CLIENT_CONFIG"
   echo "Client created with redirectUris: [https://${DOMAIN}/*]"
 fi
+
+# Configure Service Account with realm-management roles
+echo ""
+echo "Configuring Service Account for Admin API access..."
+
+# Get client UUID if not already set
+if [ -z "$CLIENT_UUID" ]; then
+  CLIENT_UUID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients?clientId=${CLIENT_ID}" \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json" | jq -r '.[0].id // empty')
+fi
+
+if [ -n "$CLIENT_UUID" ]; then
+  echo "Client UUID: ${CLIENT_UUID}"
+
+  # Get service account user ID
+  echo "Getting service account user..."
+  SERVICE_ACCOUNT_USER=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients/${CLIENT_UUID}/service-account-user" \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json")
+
+  SERVICE_ACCOUNT_ID=$(echo "$SERVICE_ACCOUNT_USER" | jq -r '.id // empty')
+
+  if [ -n "$SERVICE_ACCOUNT_ID" ]; then
+    echo "Service account user ID: ${SERVICE_ACCOUNT_ID}"
+
+    # Get realm-management client UUID
+    REALM_MGMT_CLIENT_UUID=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/clients?clientId=realm-management" \
+      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+      -H "Content-Type: application/json" | jq -r '.[0].id // empty')
+
+    if [ -n "$REALM_MGMT_CLIENT_UUID" ]; then
+      echo "Realm-management client UUID: ${REALM_MGMT_CLIENT_UUID}"
+
+      # Get available roles from realm-management client
+      echo "Fetching available realm-management roles..."
+      AVAILABLE_ROLES=$(curl -s -X GET "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users/${SERVICE_ACCOUNT_ID}/role-mappings/clients/${REALM_MGMT_CLIENT_UUID}/available" \
+        -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+        -H "Content-Type: application/json")
+
+      # Extract roles we need: view-users, manage-users, query-users, view-realm, manage-realm
+      ROLES_TO_ASSIGN=$(echo "$AVAILABLE_ROLES" | jq '[.[] | select(.name == "view-users" or .name == "manage-users" or .name == "query-users" or .name == "view-realm" or .name == "manage-realm")]')
+
+      ROLES_COUNT=$(echo "$ROLES_TO_ASSIGN" | jq 'length')
+
+      if [ "$ROLES_COUNT" -gt 0 ]; then
+        echo "Assigning ${ROLES_COUNT} realm-management roles to service account..."
+        echo "Roles: $(echo "$ROLES_TO_ASSIGN" | jq -r '.[].name' | tr '\n' ', ' | sed 's/,$//')"
+
+        # Assign roles to service account
+        ASSIGN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}/users/${SERVICE_ACCOUNT_ID}/role-mappings/clients/${REALM_MGMT_CLIENT_UUID}" \
+          -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "$ROLES_TO_ASSIGN")
+
+        HTTP_CODE=$(echo "$ASSIGN_RESPONSE" | tail -n 1)
+
+        if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
+          echo "✓ Service Account configured successfully!"
+          echo "✓ Granted roles: view-users, manage-users, query-users, view-realm, manage-realm"
+        else
+          echo "⚠ Warning: Failed to assign roles (HTTP ${HTTP_CODE})"
+          echo "Response: $(echo "$ASSIGN_RESPONSE" | head -n -1)"
+        fi
+      else
+        echo "⚠ Warning: No realm-management roles available to assign"
+        echo "Roles may already be assigned or unavailable"
+      fi
+    else
+      echo "⚠ Warning: realm-management client not found"
+    fi
+  else
+    echo "⚠ Warning: Service account user not found"
+    echo "Make sure serviceAccountsEnabled is true for the client"
+  fi
+else
+  echo "⚠ Warning: Client UUID not found, skipping service account configuration"
+fi
+
+echo ""
 
 # Create roles
 echo "Creating roles..."

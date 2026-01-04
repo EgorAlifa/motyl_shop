@@ -1,10 +1,21 @@
 # Настройка Keycloak для Админ-панели
 
-## Проблема
+## ✅ Автоматическая настройка
 
-Для работы функций управления пользователями в админ-панели необходимо настроить Service Account (сервисный аккаунт) клиента Keycloak с правами администратора.
+**Хорошие новости!** Начиная с последней версии, Service Account настраивается **автоматически** при первом деплое через `./deploy.sh`.
 
-## Решение
+Скрипт `scripts/init-keycloak.sh` автоматически:
+- ✅ Включает Service Account для клиента `motyl-admin`
+- ✅ Включает Authorization Services
+- ✅ Назначает роли realm-management: `view-users`, `manage-users`, `query-users`, `view-realm`, `manage-realm`
+
+**Вам НЕ нужно делать настройку вручную**, если вы разворачиваете проект через `./deploy.sh`!
+
+---
+
+## Ручная настройка (только если автоматическая не сработала)
+
+Если по какой-то причине автоматическая настройка не сработала, или вы настраиваете Keycloak вручную:
 
 ### Шаг 1: Включение Service Account
 
@@ -58,6 +69,30 @@ npm start
 ```bash
 docker-compose restart nextjs
 ```
+
+---
+
+## Проверка автоматической настройки
+
+Чтобы убедиться, что Service Account настроен правильно:
+
+1. Откройте Keycloak Admin Console: `https://ваш-домен/auth/admin`
+2. Войдите как admin (пароль из вывода deploy.sh)
+3. Выберите realm: `motyl-shop`
+4. Перейдите: **Clients** → `motyl-admin`
+5. Проверьте вкладку **Settings**:
+   - Service accounts enabled: должно быть **ON**
+   - Authorization enabled: должно быть **ON**
+6. Перейдите на вкладку **Service Account Roles**
+7. В выпадающем списке **Filter by clients** выберите `realm-management`
+8. В **Assigned Roles** должны быть:
+   - ✅ view-users
+   - ✅ manage-users
+   - ✅ query-users
+   - ✅ view-realm
+   - ✅ manage-realm
+
+Если все галочки есть - настройка прошла успешно! ✅
 
 ## Как это работает
 
