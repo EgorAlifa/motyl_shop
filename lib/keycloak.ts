@@ -6,20 +6,8 @@ const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'motyl-shop'
 const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID || 'motyl-admin'
 const KEYCLOAK_CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET || 'your-client-secret'
 
-// Создаем клиента Keycloak с токеном пользователя
-export async function getKeycloakAdminWithToken(accessToken: string): Promise<KcAdminClient> {
-  const client = new KcAdminClient({
-    baseUrl: KEYCLOAK_URL,
-    realmName: KEYCLOAK_REALM,
-  })
-
-  // Устанавливаем токен пользователя напрямую
-  client.setAccessToken(accessToken)
-
-  return client
-}
-
-// Legacy: использовать service account (может не работать без настройки ролей)
+// Service Account: используется для Keycloak Admin API операций
+// Требует настройки ролей realm-management в Keycloak (см. KEYCLOAK_SETUP.md)
 export async function getKeycloakAdmin(): Promise<KcAdminClient> {
   const client = new KcAdminClient({
     baseUrl: KEYCLOAK_URL,
@@ -66,13 +54,10 @@ export async function createKeycloakUser(
     firstName?: string
     lastName?: string
     role?: 'admin' | 'super_admin'
-  },
-  accessToken?: string
+  }
 ): Promise<{ id: string; username: string }> {
   try {
-    const client = accessToken
-      ? await getKeycloakAdminWithToken(accessToken)
-      : await getKeycloakAdmin()
+    const client = await getKeycloakAdmin()
 
     const user: KeycloakUser = {
       username: userData.email,
@@ -128,11 +113,9 @@ export async function createKeycloakUser(
 }
 
 // Получение списка пользователей
-export async function listKeycloakUsers(accessToken?: string): Promise<KeycloakUser[]> {
+export async function listKeycloakUsers(): Promise<KeycloakUser[]> {
   try {
-    const client = accessToken
-      ? await getKeycloakAdminWithToken(accessToken)
-      : await getKeycloakAdmin()
+    const client = await getKeycloakAdmin()
     const users = await client.users.find()
     return users as KeycloakUser[]
   } catch (error) {
@@ -142,11 +125,9 @@ export async function listKeycloakUsers(accessToken?: string): Promise<KeycloakU
 }
 
 // Удаление пользователя
-export async function deleteKeycloakUser(userId: string, accessToken?: string): Promise<void> {
+export async function deleteKeycloakUser(userId: string): Promise<void> {
   try {
-    const client = accessToken
-      ? await getKeycloakAdminWithToken(accessToken)
-      : await getKeycloakAdmin()
+    const client = await getKeycloakAdmin()
     await client.users.del({ id: userId })
   } catch (error) {
     console.error('Error deleting Keycloak user:', error)
@@ -157,13 +138,10 @@ export async function deleteKeycloakUser(userId: string, accessToken?: string): 
 // Обновление пользователя
 export async function updateKeycloakUser(
   userId: string,
-  updates: Partial<KeycloakUser>,
-  accessToken?: string
+  updates: Partial<KeycloakUser>
 ): Promise<void> {
   try {
-    const client = accessToken
-      ? await getKeycloakAdminWithToken(accessToken)
-      : await getKeycloakAdmin()
+    const client = await getKeycloakAdmin()
     await client.users.update({ id: userId }, updates)
   } catch (error) {
     console.error('Error updating Keycloak user:', error)
@@ -175,13 +153,10 @@ export async function updateKeycloakUser(
 export async function resetKeycloakUserPassword(
   userId: string,
   newPassword: string,
-  temporary: boolean = false,
-  accessToken?: string
+  temporary: boolean = false
 ): Promise<void> {
   try {
-    const client = accessToken
-      ? await getKeycloakAdminWithToken(accessToken)
-      : await getKeycloakAdmin()
+    const client = await getKeycloakAdmin()
     await client.users.resetPassword({
       id: userId,
       credential: {
