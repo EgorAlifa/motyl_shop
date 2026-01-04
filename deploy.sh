@@ -372,13 +372,23 @@ if [ $KEYCLOAK_READY -eq 1 ]; then
 
   # Initialize Keycloak realm
   echo -e "${GREEN}Step 6: Initializing Keycloak realm and client...${NC}"
-  $DOCKER_CMD exec -e KEYCLOAK_URL=http://keycloak:8080/auth \
+  INIT_OUTPUT=$($DOCKER_CMD exec -e KEYCLOAK_URL=http://keycloak:8080/auth \
     -e KEYCLOAK_ADMIN=admin \
     -e KEYCLOAK_ADMIN_PASSWORD="$ACTUAL_KC_PASSWORD" \
     -e KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     -e DOMAIN=$DOMAIN \
-    motyl_app bash /app/scripts/init-keycloak.sh
+    motyl_app bash /app/scripts/init-keycloak.sh 2>&1)
 
+  INIT_EXIT_CODE=$?
+
+  if [ $INIT_EXIT_CODE -ne 0 ]; then
+    echo -e "${RED}✗ Failed to initialize Keycloak realm!${NC}"
+    echo -e "${YELLOW}Output:${NC}"
+    echo "$INIT_OUTPUT"
+    exit 1
+  fi
+
+  echo "$INIT_OUTPUT"
   echo
   echo -e "${GREEN}✓ Keycloak realm configured successfully!${NC}"
 

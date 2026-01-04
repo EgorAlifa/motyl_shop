@@ -3,6 +3,11 @@ import { exchangeCodeForTokens, getUserInfo, createSessionToken } from '@/lib/ke
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
+  // Получаем правильный внешний URL из заголовков
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const protocol = request.headers.get('x-forwarded-proto') || 'https'
+  const baseUrl = `${protocol}://${host}`
+
   try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
@@ -12,21 +17,16 @@ export async function GET(request: NextRequest) {
     // Проверка на ошибки от Keycloak
     if (error) {
       console.error('Keycloak authorization error:', error, errorDescription)
-      return NextResponse.redirect(new URL(`/admin/login?error=${error}`, request.url))
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=${error}`)
     }
 
     // Проверка наличия authorization code
     if (!code) {
-      return NextResponse.redirect(
-        new URL('/admin/login?error=missing_code', request.url)
-      )
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=missing_code`)
     }
 
     // Получаем redirect_uri (должен совпадать с тем, что был в запросе на авторизацию)
-    // Используем правильный внешний URL из заголовков
-    const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
-    const protocol = request.headers.get('x-forwarded-proto') || 'https'
-    const redirectUri = `${protocol}://${host}/admin/callback`
+    const redirectUri = `${baseUrl}/admin/callback`
 
     // Обмениваем code на tokens
     const tokens = await exchangeCodeForTokens(code, redirectUri)
@@ -40,9 +40,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = roles.includes('admin') || isSuperAdmin
 
     if (!isAdmin && !isSuperAdmin) {
-      return NextResponse.redirect(
-        new URL('/admin/login?error=insufficient_permissions', request.url)
-      )
+      return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
     }
 
     // Создаем JWT токен для нашего приложения
@@ -55,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     // Сохраняем токены в cookies
     const cookieStore = await cookies()
-    const response = NextResponse.redirect(new URL('/admin', request.url))
+    const response = NextResponse.redirect(`${baseUrl}/admin`)
 
     // Основной токен приложения
     cookieStore.set('auth-token', sessionToken, {
@@ -87,8 +85,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error: any) {
     console.error('Callback handler error:', error)
-    return NextResponse.redirect(
-      new URL(`/admin/login?error=${encodeURIComponent(error.message || 'authentication_failed')}`, request.url)
-    )
+    const errorMessage = encodeURIComponent(error.message || 'authentication_failed')
+    return NextResponse.redirect(`${baseUrl}/admin/login?error=${errorMessage}`)
   }
 }
