@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { withAuth } from '@/lib/api-auth'
+import { withAuth, AuthUser } from '@/lib/api-auth'
 
 const categorySchema = z.object({
   name: z.string().min(2).optional(),
@@ -13,6 +13,7 @@ const categorySchema = z.object({
 // PATCH /api/categories/[id] - обновить категорию
 export const PATCH = withAuth(async (
   request: NextRequest,
+  user: AuthUser,
   context: { params: Promise<{ id: string }> }
 ) => {
   try {
@@ -70,6 +71,7 @@ export const PATCH = withAuth(async (
 // DELETE /api/categories/[id] - удалить категорию
 export const DELETE = withAuth(async (
   request: NextRequest,
+  user: AuthUser,
   context: { params: Promise<{ id: string }> }
 ) => {
   try {
