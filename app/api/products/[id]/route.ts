@@ -18,9 +18,18 @@ export const PATCH = withAuth(async (
       )
     }
 
+    // Извлекаем только поля, которые можно обновлять
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      category,
+      ...updateData
+    } = body
+
     const product = await prisma.product.update({
       where: { id: productId },
-      data: body,
+      data: updateData,
       include: {
         category: true, // Включаем связанную категорию в ответ
       },
