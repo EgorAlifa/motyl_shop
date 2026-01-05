@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withSuperAdmin, AuthUser } from '@/lib/api-auth'
+import { getKeycloakAdmin, createSessionToken, resetKeycloakUserPassword } from '@/lib/keycloak'
 import bcrypt from 'bcrypt'
 
 // Обновить админа
@@ -49,7 +50,61 @@ export const PATCH = withSuperAdmin(async (
       )
     }
 
-    // Подготавливаем данные для обновления
+    // Получаем Keycloak Admin client
+    const kcAdmin = await getKeycloakAdmin()
+
+    // Находим пользователя в Keycloak по email
+    const kcUsers = await kcAdmin.users.find({
+      email: targetAdmin.email,
+      exact: true,
+    })
+
+    if (!kcUsers || kcUsers.length === 0) {
+      return NextResponse.json(
+        { error: 'Пользователь не найден в Keycloak' },
+        { status: 404 }
+      )
+    }
+
+    const kcUser = kcUsers[0]
+    const kcUserId = kcUser.id
+
+    if (!kcUserId) {
+      return NextResponse.json(
+        { error: 'ID пользователя Keycloak не найден' },
+        { status: 404 }
+      )
+    }
+
+    // Обновляем данные в Keycloak
+    const kcUpdates: any = {}
+
+    if (name !== undefined) {
+      kcUpdates.firstName = name
+    }
+
+    if (isBlocked !== undefined) {
+      kcUpdates.enabled = !isBlocked
+    }
+
+    if (permissions !== undefined) {
+      kcUpdates.attributes = {
+        ...kcUser.attributes,
+        permissions: permissions,
+      }
+    }
+
+    // Применяем обновления в Keycloak
+    if (Object.keys(kcUpdates).length > 0) {
+      await kcAdmin.users.update({ id: kcUserId }, kcUpdates)
+    }
+
+    // Обновляем пароль в Keycloak если указан
+    if (password) {
+      await resetKeycloakUserPassword(kcUserId, password, false)
+    }
+
+    // Подготавливаем данные для обновления в PostgreSQL
     const updateData: any = {}
 
     if (name !== undefined) updateData.name = name
@@ -57,7 +112,7 @@ export const PATCH = withSuperAdmin(async (
     if (isBlocked !== undefined) updateData.isBlocked = isBlocked
     if (password) updateData.password = await bcrypt.hash(password, 10)
 
-    // Обновляем админа
+    // Обновляем админа в PostgreSQL
     const updatedAdmin = await prisma.admin.update({
       where: { id: targetId },
       data: updateData,
@@ -73,10 +128,32 @@ export const PATCH = withSuperAdmin(async (
       },
     })
 
-    return NextResponse.json({
+    // Создаём ответ
+    const response = NextResponse.json({
       message: 'Администратор успешно обновлен',
       admin: updatedAdmin,
     })
+
+    // Если обновляли permissions текущего пользователя, обновляем его сессию
+    if (permissions !== undefined && kcUser.email === user.email) {
+      const newSessionToken = await createSessionToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        permissions: permissions,
+      })
+
+      // Устанавливаем новый токен в куки
+      response.cookies.set('auth-token', newSessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 дней
+        path: '/',
+      })
+    }
+
+    return response
   } catch (error) {
     console.error('Error updating admin:', error)
     return NextResponse.json(

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { formatDate } from '@/lib/utils'
 import { Users, Plus, Edit, Trash2, Lock, Unlock, Check, X } from 'lucide-react'
+import { SessionSync } from '@/app/admin/components/SessionSync'
 
 const PERMISSION_LABELS = {
   dashboard: 'Дашборд',
@@ -95,6 +96,7 @@ export default function ManageAdminsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40">
+      <SessionSync />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
