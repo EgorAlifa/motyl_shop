@@ -14,9 +14,13 @@ const categorySchema = z.object({
 export const PATCH = withAuth(async (
   request: NextRequest,
   user: AuthUser,
-  context: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) => {
   try {
+    if (!context) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
     const { id } = await context.params
     const body = await request.json()
     const validatedData = categorySchema.parse(body)
@@ -72,9 +76,13 @@ export const PATCH = withAuth(async (
 export const DELETE = withAuth(async (
   request: NextRequest,
   user: AuthUser,
-  context: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) => {
   try {
+    if (!context) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
     const { id } = await context.params
 
     // Проверяем, есть ли товары в этой категории
