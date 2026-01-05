@@ -47,12 +47,15 @@ export const POST = withAuth(async (request: NextRequest) => {
     const validatedData = productSchema.parse(body)
 
     // Генерируем slug из name если он не указан или на кириллице
-    if (!validatedData.slug || /[а-яА-ЯёЁ]/.test(validatedData.slug)) {
-      validatedData.slug = transliterate(validatedData.name)
-    }
+    const slug = !validatedData.slug || /[а-яА-ЯёЁ]/.test(validatedData.slug)
+      ? transliterate(validatedData.name)
+      : validatedData.slug
 
     const product = await prisma.product.create({
-      data: validatedData,
+      data: {
+        ...validatedData,
+        slug,
+      },
     })
 
     return NextResponse.json(product, { status: 201 })

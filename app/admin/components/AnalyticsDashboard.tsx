@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatPrice, orderStatusNames } from '@/lib/utils'
 import { TrendingUp, ShoppingCart, DollarSign, Package } from 'lucide-react'
@@ -31,11 +31,7 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState(30) // дни: 7, 30, 90, 365, 0 (все время)
 
-  useEffect(() => {
-    fetchStats()
-  }, [period])
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true)
     try {
       const url = period === 0
@@ -49,7 +45,11 @@ export function AnalyticsDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [period])
+
+  useEffect(() => {
+    fetchStats()
+  }, [fetchStats])
 
   if (loading) {
     return (
