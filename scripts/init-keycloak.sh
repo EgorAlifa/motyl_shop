@@ -46,7 +46,7 @@ fi
 
 echo "Admin token obtained successfully"
 
-# Create realm
+# Create realm with extended token lifetimes
 echo "Creating realm: ${REALM_NAME}..."
 curl -s -X POST "${KEYCLOAK_URL}/admin/realms" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
@@ -60,10 +60,38 @@ curl -s -X POST "${KEYCLOAK_URL}/admin/realms" \
     "duplicateEmailsAllowed": false,
     "resetPasswordAllowed": true,
     "editUsernameAllowed": false,
-    "bruteForceProtected": true
-  }' || echo "Realm may already exist"
+    "bruteForceProtected": true,
+    "accessTokenLifespan": 3600,
+    "accessTokenLifespanForImplicitFlow": 3600,
+    "ssoSessionIdleTimeout": 7200,
+    "ssoSessionMaxLifespan": 28800,
+    "offlineSessionIdleTimeout": 2592000,
+    "accessCodeLifespan": 300,
+    "accessCodeLifespanUserAction": 600,
+    "accessCodeLifespanLogin": 1800
+  }' || echo "Realm may already exist, updating..."
 
-echo "Realm created/updated"
+# Update realm token settings if it already exists
+echo "Updating realm token settings..."
+curl -s -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM_NAME}" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "realm": "'"${REALM_NAME}"'",
+    "accessTokenLifespan": 3600,
+    "accessTokenLifespanForImplicitFlow": 3600,
+    "ssoSessionIdleTimeout": 7200,
+    "ssoSessionMaxLifespan": 28800,
+    "offlineSessionIdleTimeout": 2592000,
+    "accessCodeLifespan": 300,
+    "accessCodeLifespanUserAction": 600,
+    "accessCodeLifespanLogin": 1800
+  }' 2>/dev/null || true
+
+echo "Realm created/updated with extended token lifetimes:"
+echo "  - Access Token: 1 час (3600 сек)"
+echo "  - SSO Session Idle: 2 часа (7200 сек)"
+echo "  - SSO Session Max: 8 часов (28800 сек)"
 
 # Create or update client
 echo "Creating/updating client: ${CLIENT_ID}..."

@@ -139,10 +139,10 @@ export default function KeycloakUsersPage() {
                     Роль
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
+                    Доступ к разделам
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email подтвержден
+                    Статус
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Действия
@@ -172,6 +172,27 @@ export default function KeycloakUsersPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
+                      {user.role === 'super_admin' ? (
+                        <span className="text-xs text-gray-500 italic">Полный доступ</span>
+                      ) : user.permissions && user.permissions.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {user.permissions.map((permission) => {
+                            const permLabel = AVAILABLE_PERMISSIONS.find((p) => p.id === permission)?.label || permission
+                            return (
+                              <span
+                                key={permission}
+                                className="inline-block px-2 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              >
+                                {permLabel}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Нет доступа</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       {user.enabled ? (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           <Check className="h-3 w-3" />
@@ -181,19 +202,6 @@ export default function KeycloakUsersPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           <X className="h-3 w-3" />
                           Неактивен
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.emailVerified ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                          <Check className="h-3 w-3" />
-                          Да
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                          <X className="h-3 w-3" />
-                          Нет
                         </span>
                       )}
                     </td>

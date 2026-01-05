@@ -112,7 +112,22 @@ export function OrderForm({ product }: OrderFormProps) {
           min={product.minOrder}
           step={10}
           value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || product.minOrder)}
+          onChange={(e) => {
+            const value = e.target.value
+            // Разрешаем пустое поле или любое число
+            if (value === '') {
+              setQuantity(0)
+            } else {
+              setQuantity(parseInt(value))
+            }
+          }}
+          onBlur={(e) => {
+            // При потере фокуса устанавливаем минимальное значение если нужно
+            const value = parseInt(e.target.value)
+            if (!value || value < product.minOrder) {
+              setQuantity(product.minOrder)
+            }
+          }}
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
           required
         />
