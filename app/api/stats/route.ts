@@ -5,17 +5,21 @@ import { withAuth } from '@/lib/api-auth'
 
 export const GET = withAuth(async (request: NextRequest) => {
   try {
+    const { searchParams } = new URL(request.url)
+    const daysParam = searchParams.get('days')
+    const days = daysParam ? parseInt(daysParam) : 30
+
     const now = new Date()
-    const thirtyDaysAgo = subDays(now, 30)
+    const startDate = subDays(now, days)
 
     // Total orders (all statuses)
     const totalOrders = await prisma.order.count()
 
-    // Orders in last 30 days (all statuses)
+    // Orders in selected period (all statuses)
     const recentOrders = await prisma.order.count({
       where: {
         createdAt: {
-          gte: thirtyDaysAgo,
+          gte: startDate,
         },
       },
     })
@@ -27,12 +31,12 @@ export const GET = withAuth(async (request: NextRequest) => {
       },
     })
 
-    // COMPLETED orders in last 30 days
+    // COMPLETED orders in selected period
     const recentCompletedOrders = await prisma.order.count({
       where: {
         status: 'DELIVERED',
         createdAt: {
-          gte: thirtyDaysAgo,
+          gte: startDate,
         },
       },
     })
@@ -46,12 +50,12 @@ export const GET = withAuth(async (request: NextRequest) => {
     })
     const totalRevenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0)
 
-    // Revenue in last 30 days (ТОЛЬКО из выполненных заявок)
+    // Revenue in selected period (ТОЛЬКО из выполненных заявок)
     const recentCompletedOrdersWithAmount = await prisma.order.findMany({
       where: {
         status: 'DELIVERED',
         createdAt: {
-          gte: thirtyDaysAgo,
+          gte: startDate,
         },
       },
       select: { totalAmount: true },
@@ -99,9 +103,9 @@ export const GET = withAuth(async (request: NextRequest) => {
       })
     )
 
-    // Daily orders for last 30 days
+    // Daily orders for selected period
     const dailyOrders = []
-    for (let i = 29; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const date = subDays(now, i)
       const dayStart = startOfDay(date)
       const dayEnd = endOfDay(date)

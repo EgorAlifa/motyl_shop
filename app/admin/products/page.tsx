@@ -9,6 +9,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL') // ALL, MOTYL, KORETRA, ACCESSORIES
 
   useEffect(() => {
     fetchProducts()
@@ -53,6 +54,19 @@ export default function ProductsPage() {
     handleCloseForm()
   }
 
+  // Фильтрация товаров по категории
+  const filteredProducts = selectedCategory === 'ALL'
+    ? products
+    : products.filter((product) => product.category === selectedCategory)
+
+  // Статистика по категориям
+  const categoryCounts = {
+    ALL: products.length,
+    MOTYL: products.filter((p) => p.category === 'MOTYL').length,
+    KORETRA: products.filter((p) => p.category === 'KORETRA').length,
+    ACCESSORIES: products.filter((p) => p.category === 'ACCESSORIES').length,
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -78,6 +92,34 @@ export default function ProductsPage() {
             <Plus className="h-5 w-5" />
             Добавить товар
           </button>
+        </div>
+
+        {/* Фильтр по категориям */}
+        <div className="mb-6 bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-700 mr-2">Категория:</span>
+            {[
+              { value: 'ALL', label: 'Все товары' },
+              { value: 'MOTYL', label: categoryNames.MOTYL },
+              { value: 'KORETRA', label: categoryNames.KORETRA },
+              { value: 'ACCESSORIES', label: categoryNames.ACCESSORIES },
+            ].map((category) => (
+              <button
+                key={category.value}
+                onClick={() => setSelectedCategory(category.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedCategory === category.value
+                    ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.label}
+                <span className="ml-2 text-xs opacity-75">
+                  ({categoryCounts[category.value as keyof typeof categoryCounts]})
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {showForm && (
@@ -114,7 +156,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{product.name}</div>
@@ -161,6 +203,14 @@ export default function ProductsPage() {
             </tbody>
           </table>
           </div>
+
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              {selectedCategory === 'ALL'
+                ? 'Товаров пока нет'
+                : `Нет товаров в категории "${categoryNames[selectedCategory as keyof typeof categoryNames] || selectedCategory}"`}
+            </div>
+          )}
         </div>
       </main>
     </div>

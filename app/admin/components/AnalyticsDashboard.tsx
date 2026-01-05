@@ -29,14 +29,19 @@ interface Stats {
 export function AnalyticsDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState(30) // дни: 7, 30, 90, 365, 0 (все время)
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [period])
 
   const fetchStats = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/stats')
+      const url = period === 0
+        ? '/api/stats?days=10000' // Большое число для "всего времени"
+        : `/api/stats?days=${period}`
+      const response = await fetch(url)
       const data = await response.json()
       setStats(data)
     } catch (error) {
@@ -62,8 +67,49 @@ export function AnalyticsDashboard() {
     )
   }
 
+  const getPeriodLabel = () => {
+    switch (period) {
+      case 7: return '7 дней'
+      case 30: return '30 дней'
+      case 90: return '90 дней'
+      case 365: return '1 год'
+      case 0: return 'Все время'
+      default: return `${period} дней`
+    }
+  }
+
   return (
     <div className="space-y-8">
+      {/* Period Selector */}
+      <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700">Период:</span>
+            <div className="flex gap-2">
+              {[
+                { value: 7, label: '7 дней' },
+                { value: 30, label: '30 дней' },
+                { value: 90, label: '90 дней' },
+                { value: 365, label: '1 год' },
+                { value: 0, label: 'Все время' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setPeriod(option.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    period === option.value
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-blue-100 group hover:-translate-y-1">
@@ -75,7 +121,9 @@ export function AnalyticsDashboard() {
           <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
             {stats.recentOrders}
           </div>
-          <div className="text-sm font-semibold text-gray-700 mt-2">Всего заявок за 30 дней</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">
+            Всего заявок за {getPeriodLabel().toLowerCase()}
+          </div>
           <div className="text-xs text-gray-500 mt-1">
             Выполнено: {stats.recentCompletedOrders} • Всего: {stats.totalOrders}
           </div>
@@ -90,7 +138,9 @@ export function AnalyticsDashboard() {
           <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
             {formatPrice(stats.recentRevenue)}
           </div>
-          <div className="text-sm font-semibold text-gray-700 mt-2">Выручка за 30 дней</div>
+          <div className="text-sm font-semibold text-gray-700 mt-2">
+            Выручка за {getPeriodLabel().toLowerCase()}
+          </div>
           <div className="text-xs text-gray-500 mt-1">
             Из {stats.recentCompletedOrders} выполненных • Всего: {formatPrice(stats.totalRevenue)}
           </div>
@@ -109,7 +159,7 @@ export function AnalyticsDashboard() {
           </div>
           <div className="text-sm font-semibold text-gray-700 mt-2">Средний чек</div>
           <div className="text-xs text-gray-500 mt-1">
-            По выполненным заявкам за 30 дней
+            По выполненным заявкам за {getPeriodLabel().toLowerCase()}
           </div>
         </div>
 
