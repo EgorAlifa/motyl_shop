@@ -67,7 +67,7 @@ export function OrderForm({ product }: OrderFormProps) {
         deliveryDate: '',
         comment: '',
       })
-      setQuantity(product.minOrder)
+      setQuantity(product.minOrder.toString())
     } catch (err: any) {
       setError(err.message)
     } finally {

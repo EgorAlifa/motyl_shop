@@ -6,13 +6,15 @@ import { Plus, Edit, Trash2, Check, X } from 'lucide-react'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL') // ALL, MOTYL, KORETRA, ACCESSORIES
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
 
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
   }, [])
 
   const fetchProducts = async () => {
@@ -24,6 +26,16 @@ export default function ProductsPage() {
       console.error('Failed to fetch products:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      const data = await response.json()
+      setCategories(data)
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
     }
   }
 
@@ -57,15 +69,17 @@ export default function ProductsPage() {
   // Фильтрация товаров по категории
   const filteredProducts = selectedCategory === 'ALL'
     ? products
-    : products.filter((product) => product.category === selectedCategory)
+    : products.filter((product) => product.categoryId === selectedCategory)
 
   // Статистика по категориям
-  const categoryCounts = {
+  const categoryCounts: Record<string, number> = {
     ALL: products.length,
-    MOTYL: products.filter((p) => p.category === 'MOTYL').length,
-    KORETRA: products.filter((p) => p.category === 'KORETRA').length,
-    ACCESSORIES: products.filter((p) => p.category === 'ACCESSORIES').length,
   }
+
+  // Подсчитываем количество товаров в каждой категории
+  categories.forEach((cat) => {
+    categoryCounts[cat.id] = products.filter((p) => p.categoryId === cat.id).length
+  })
 
   if (loading) {
     return (
@@ -98,24 +112,32 @@ export default function ProductsPage() {
         <div className="mb-6 bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-700 mr-2">Категория:</span>
-            {[
-              { value: 'ALL', label: 'Все товары' },
-              { value: 'MOTYL', label: categoryNames.MOTYL },
-              { value: 'KORETRA', label: categoryNames.KORETRA },
-              { value: 'ACCESSORIES', label: categoryNames.ACCESSORIES },
-            ].map((category) => (
+            <button
+              onClick={() => setSelectedCategory('ALL')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedCategory === 'ALL'
+                  ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Все товары
+              <span className="ml-2 text-xs opacity-75">
+                ({categoryCounts['ALL']})
+              </span>
+            </button>
+            {categories.map((category) => (
               <button
-                key={category.value}
-                onClick={() => setSelectedCategory(category.value)}
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedCategory === category.value
+                  selectedCategory === category.id
                     ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {category.label}
+                {category.name}
                 <span className="ml-2 text-xs opacity-75">
-                  ({categoryCounts[category.value as keyof typeof categoryCounts]})
+                  ({categoryCounts[category.id] || 0})
                 </span>
               </button>
             ))}
@@ -125,6 +147,7 @@ export default function ProductsPage() {
         {showForm && (
           <ProductForm
             product={editingProduct}
+            categories={categories}
             onClose={handleCloseForm}
             onSave={handleSave}
           />
@@ -163,7 +186,7 @@ export default function ProductsPage() {
                     <div className="text-sm text-gray-500">{product.slug}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
-                    {categoryNames[product.category] || product.category}
+                    {product.category?.name || 'Без категории'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
                     {formatPrice(product.price)} / {product.unit}
@@ -208,7 +231,7 @@ export default function ProductsPage() {
             <div className="text-center py-12 text-gray-500">
               {selectedCategory === 'ALL'
                 ? 'Товаров пока нет'
-                : `Нет товаров в категории "${categoryNames[selectedCategory as keyof typeof categoryNames] || selectedCategory}"`}
+                : `Нет товаров в категории "${categories.find(c => c.id === selectedCategory)?.name || 'выбранной'}"`}
             </div>
           )}
         </div>
@@ -219,10 +242,12 @@ export default function ProductsPage() {
 
 function ProductForm({
   product,
+  categories,
   onClose,
   onSave,
 }: {
   product: any
+  categories: any[]
   onClose: () => void
   onSave: () => void
 }) {
@@ -235,7 +260,7 @@ function ProductForm({
       stock: 0,
       unit: 'г',
       minOrder: 50,
-      category: 'MOTYL',
+      categoryId: categories[0]?.id || '',
       storage: '',
       image: '',
       isActive: true,
@@ -428,14 +453,16 @@ function ProductForm({
               <div>
                 <label className="block text-sm font-semibold mb-2">Категория</label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg"
                   required
                 >
-                  <option value="MOTYL">Мотыль</option>
-                  <option value="KORETRA">Коретра</option>
-                  <option value="ACCESSORIES">Аксессуары</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

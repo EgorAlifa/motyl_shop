@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatPrice, categoryNames } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 
 interface ProductCardProps {
   product: {
@@ -11,7 +11,10 @@ interface ProductCardProps {
     price: number
     stock: number
     unit: string
-    category: string
+    category: {
+      name: string
+      slug: string
+    }
     image: string | null
   }
 }
@@ -44,7 +47,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <div className="absolute top-3 right-3">
             <span className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-semibold rounded-full shadow-lg backdrop-blur-sm">
-              {categoryNames[product.category] || product.category}
+              {product.category.name}
             </span>
           </div>
           {product.stock > 0 && (

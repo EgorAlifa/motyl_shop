@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { prisma } from '@/lib/prisma'
-import { formatPrice, categoryNames } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 import { OrderForm } from './OrderForm'
 import { Package, Snowflake, Info } from 'lucide-react'
 
@@ -17,6 +17,9 @@ export default async function ProductPage({
 }) {
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
+    include: {
+      category: true, // Включаем связанную категорию
+    },
   })
 
   if (!product || !product.isActive) {
@@ -59,7 +62,7 @@ export default async function ProductPage({
               <div className="flex flex-col">
                 <div className="mb-2">
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                    {categoryNames[product.category] || product.category}
+                    {product.category.name}
                   </span>
                 </div>
 

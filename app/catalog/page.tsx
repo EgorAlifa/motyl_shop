@@ -2,7 +2,6 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ProductCard } from '@/components/ProductCard'
 import { prisma } from '@/lib/prisma'
-import { categoryNames } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -12,20 +11,27 @@ export default async function CatalogPage({
 }: {
   searchParams: { category?: string }
 }) {
-  const category = searchParams.category
+  const categorySlug = searchParams.category
 
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
-      ...(category && { category: category as any }),
+      ...(categorySlug && {
+        category: {
+          slug: categorySlug,
+        },
+      }),
+    },
+    include: {
+      category: true, // Включаем связанную категорию
     },
     orderBy: { name: 'asc' },
   })
 
-  const categories = await prisma.product.findMany({
+  // Получаем все активные категории
+  const categories = await prisma.productCategory.findMany({
     where: { isActive: true },
-    select: { category: true },
-    distinct: ['category'],
+    orderBy: { name: 'asc' },
   })
 
   return (
@@ -49,7 +55,7 @@ export default async function CatalogPage({
             <a
               href="/catalog"
               className={`px-6 py-3 rounded-xl font-medium transition-all shadow-sm ${
-                !category
+                !categorySlug
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                   : 'bg-white text-gray-700 hover:shadow-md hover:-translate-y-0.5'
               }`}
@@ -58,15 +64,15 @@ export default async function CatalogPage({
             </a>
             {categories.map((cat) => (
               <a
-                key={cat.category}
-                href={`/catalog?category=${cat.category}`}
+                key={cat.id}
+                href={`/catalog?category=${cat.slug}`}
                 className={`px-6 py-3 rounded-xl font-medium transition-all shadow-sm ${
-                  category === cat.category
+                  categorySlug === cat.slug
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:shadow-md hover:-translate-y-0.5'
                 }`}
               >
-                {categoryNames[cat.category] || cat.category}
+                {cat.name}
               </a>
             ))}
           </div>

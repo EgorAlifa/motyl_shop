@@ -13,6 +13,7 @@ export default async function HomePage() {
     where: { isActive: true },
     take: 6,
     orderBy: { createdAt: 'desc' },
+    include: { category: true },
   })
 
   return (

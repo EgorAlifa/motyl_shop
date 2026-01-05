@@ -1,4 +1,4 @@
-import { PrismaClient, Category } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
@@ -26,6 +26,42 @@ async function main() {
     console.log(`Found ${adminCount} admins in database`)
   }
 
+  // Create categories first
+  const motylCategory = await prisma.productCategory.upsert({
+    where: { slug: 'motyl' },
+    update: {},
+    create: {
+      name: 'Мотыль',
+      slug: 'motyl',
+      description: 'Живой мотыль для рыбалки',
+      isActive: true,
+    },
+  })
+
+  const koretraCategory = await prisma.productCategory.upsert({
+    where: { slug: 'koretra' },
+    update: {},
+    create: {
+      name: 'Коретра',
+      slug: 'koretra',
+      description: 'Живая коретра для рыбалки',
+      isActive: true,
+    },
+  })
+
+  const accessoriesCategory = await prisma.productCategory.upsert({
+    where: { slug: 'accessories' },
+    update: {},
+    create: {
+      name: 'Аксессуары',
+      slug: 'accessories',
+      description: 'Аксессуары для хранения наживки',
+      isActive: true,
+    },
+  })
+
+  console.log('Categories created')
+
   // Create products
   const products = [
     {
@@ -36,7 +72,7 @@ async function main() {
       stock: 5000,
       unit: 'г',
       minOrder: 50,
-      category: Category.MOTYL,
+      categoryId: motylCategory.id,
       storage: 'Хранить при температуре 0-4°C в холодильнике. Не замораживать! Регулярно промывать водой. Срок хранения до 14 дней.',
       image: '/images/motyl-large.jpg',
       isActive: true,
@@ -49,7 +85,7 @@ async function main() {
       stock: 3000,
       unit: 'г',
       minOrder: 50,
-      category: Category.MOTYL,
+      categoryId: motylCategory.id,
       storage: 'Хранить при температуре 0-4°C в холодильнике. Не замораживать! Менять воду ежедневно. Срок хранения до 10 дней.',
       image: '/images/motyl-small.jpg',
       isActive: true,
@@ -62,7 +98,7 @@ async function main() {
       stock: 2000,
       unit: 'г',
       minOrder: 100,
-      category: Category.MOTYL,
+      categoryId: motylCategory.id,
       storage: 'Хранить при температуре 0-4°C в холодильнике в специальном контейнере. Не замораживать! Промывать каждые 2-3 дня. Срок хранения до 20 дней.',
       image: '/images/motyl-premium.jpg',
       isActive: true,
@@ -75,7 +111,7 @@ async function main() {
       stock: 1500,
       unit: 'г',
       minOrder: 50,
-      category: Category.KORETRA,
+      categoryId: koretraCategory.id,
       storage: 'Хранить при температуре 0-4°C в холодильнике в емкости с водой. Не замораживать! Менять воду ежедневно. Срок хранения до 7 дней.',
       image: '/images/koretra.jpg',
       isActive: true,
@@ -88,7 +124,7 @@ async function main() {
       stock: 1000,
       unit: 'г',
       minOrder: 50,
-      category: Category.KORETRA,
+      categoryId: koretraCategory.id,
       storage: 'Хранить при температуре 0-4°C в холодильнике в емкости с чистой водой. Менять воду дважды в день. Срок хранения до 5 дней.',
       image: '/images/koretra-large.jpg',
       isActive: true,
@@ -101,7 +137,7 @@ async function main() {
       stock: 50,
       unit: 'шт',
       minOrder: 1,
-      category: Category.ACCESSORIES,
+      categoryId: accessoriesCategory.id,
       storage: 'Хранить в сухом месте при комнатной температуре.',
       image: '/images/container.jpg',
       isActive: true,
