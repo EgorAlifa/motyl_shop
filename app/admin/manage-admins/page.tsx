@@ -144,7 +144,7 @@ export default function ManageAdminsPage() {
                   Роль
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Права доступа
+                  Доступ к разделам
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Последний вход
@@ -177,7 +177,9 @@ export default function ManageAdminsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
-                      {admin.permissions && admin.permissions.length > 0 ? (
+                      {admin.role === 'SUPER_ADMIN' ? (
+                        <span className="text-xs text-gray-500 italic">Полный доступ</span>
+                      ) : admin.permissions && admin.permissions.length > 0 ? (
                         admin.permissions.map((perm: string) => (
                           <span
                             key={perm}
@@ -187,7 +189,7 @@ export default function ManageAdminsPage() {
                           </span>
                         ))
                       ) : (
-                        <span className="text-sm text-gray-400">Нет прав</span>
+                        <span className="text-xs text-gray-400 italic">Нет доступа</span>
                       )}
                     </div>
                   </td>
@@ -298,6 +300,7 @@ function AdminForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(admin ? {
           name: formData.name,
+          email: formData.email,
           permissions: formData.permissions,
           ...(formData.password && { password: formData.password })
         } : formData),
@@ -342,18 +345,23 @@ function AdminForm({
               />
             </div>
 
-            {!admin && (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg"
+                required
+                disabled={!!admin}
+                title={admin ? 'Email нельзя изменить' : ''}
+              />
+              {admin && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Email нельзя изменить после создания
+                </p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-semibold mb-2">
@@ -370,7 +378,7 @@ function AdminForm({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Права доступа</label>
+              <label className="block text-sm font-semibold mb-2">Доступ к разделам</label>
               <div className="space-y-2">
                 {availablePermissions.map((perm) => (
                   <label key={perm.key} className="flex items-center gap-2 cursor-pointer">

@@ -12,7 +12,7 @@ export const PATCH = withSuperAdmin(async (
 ) => {
   try {
     const body = await request.json()
-    const { name, permissions, isBlocked, password } = body
+    const { name, email, permissions, isBlocked, password } = body
     const targetId = context?.params?.id
 
     if (!targetId) {
@@ -79,8 +79,8 @@ export const PATCH = withSuperAdmin(async (
     // Обновляем данные в Keycloak
     const kcUpdates: any = {
       // Всегда сохраняем email и username чтобы они не терялись
-      email: kcUser.email,
-      username: kcUser.username,
+      email: email || kcUser.email || targetAdmin.email,
+      username: kcUser.username || targetAdmin.email,
     }
 
     if (name !== undefined) {
@@ -110,6 +110,7 @@ export const PATCH = withSuperAdmin(async (
     const updateData: any = {}
 
     if (name !== undefined) updateData.name = name
+    if (email !== undefined) updateData.email = email
     if (permissions !== undefined) updateData.permissions = permissions
     if (isBlocked !== undefined) updateData.isBlocked = isBlocked
     if (password) updateData.password = await bcrypt.hash(password, 10)
