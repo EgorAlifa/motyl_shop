@@ -309,7 +309,12 @@ function AdminForm({
         throw new Error(data.error || 'Ошибка при сохранении')
       }
 
-      onSave()
+      // Если изменили собственные права, перезагружаем страницу
+      if (data.shouldReload) {
+        window.location.reload()
+      } else {
+        onSave()
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {

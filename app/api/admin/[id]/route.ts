@@ -77,7 +77,11 @@ export const PATCH = withSuperAdmin(async (
     }
 
     // Обновляем данные в Keycloak
-    const kcUpdates: any = {}
+    const kcUpdates: any = {
+      // Всегда сохраняем email и username чтобы они не терялись
+      email: kcUser.email,
+      username: kcUser.username,
+    }
 
     if (name !== undefined) {
       kcUpdates.firstName = name
@@ -95,9 +99,7 @@ export const PATCH = withSuperAdmin(async (
     }
 
     // Применяем обновления в Keycloak
-    if (Object.keys(kcUpdates).length > 0) {
-      await kcAdmin.users.update({ id: kcUserId }, kcUpdates)
-    }
+    await kcAdmin.users.update({ id: kcUserId }, kcUpdates)
 
     // Обновляем пароль в Keycloak если указан
     if (password) {
@@ -132,10 +134,11 @@ export const PATCH = withSuperAdmin(async (
     const response = NextResponse.json({
       message: 'Администратор успешно обновлен',
       admin: updatedAdmin,
+      shouldReload: targetId === user.id && permissions !== undefined, // Флаг для перезагрузки страницы
     })
 
     // Если обновляли permissions текущего пользователя, обновляем его сессию
-    if (permissions !== undefined && kcUser.email === user.email) {
+    if (targetId === user.id && permissions !== undefined) {
       const newSessionToken = await createSessionToken({
         id: user.id,
         email: user.email,
