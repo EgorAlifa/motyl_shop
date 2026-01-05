@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatPrice, categoryNames } from '@/lib/utils'
-import { Plus, Edit, Trash2, Check, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Check, X, Settings } from 'lucide-react'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([])
@@ -11,6 +11,8 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<any>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -63,7 +65,50 @@ export default function ProductsPage() {
 
   const handleSave = () => {
     fetchProducts()
+    fetchCategories()
     handleCloseForm()
+  }
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category)
+    setShowCategoryForm(true)
+  }
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    const category = categories.find((c) => c.id === categoryId)
+    const productsInCategory = products.filter((p) => p.categoryId === categoryId).length
+
+    if (productsInCategory > 0) {
+      alert(`Невозможно удалить категорию "${category?.name}": в ней ${productsInCategory} товаров. Сначала переместите товары в другую категорию.`)
+      return
+    }
+
+    if (!confirm(`Удалить категорию "${category?.name}"?`)) return
+
+    try {
+      const response = await fetch(`/api/categories/${categoryId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Ошибка при удалении категории')
+      }
+      fetchCategories()
+      if (selectedCategory === categoryId) {
+        setSelectedCategory('ALL')
+      }
+    } catch (error: any) {
+      console.error('Failed to delete category:', error)
+      alert(error.message || 'Ошибка при удалении категории')
+    }
+  }
+
+  const handleCloseCategoryForm = () => {
+    setShowCategoryForm(false)
+    setEditingCategory(null)
+  }
+
+  const handleSaveCategory = () => {
+    fetchCategories()
+    handleCloseCategoryForm()
   }
 
   // Фильтрация товаров по категории
@@ -110,8 +155,17 @@ export default function ProductsPage() {
 
         {/* Фильтр по категориям */}
         <div className="mb-6 bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-700">Категории товаров</span>
+            <button
+              onClick={() => setShowCategoryForm(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Добавить категорию
+            </button>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-700 mr-2">Категория:</span>
             <button
               onClick={() => setSelectedCategory('ALL')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -126,20 +180,44 @@ export default function ProductsPage() {
               </span>
             </button>
             {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedCategory === category.id
-                    ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category.name}
-                <span className="ml-2 text-xs opacity-75">
-                  ({categoryCounts[category.id] || 0})
-                </span>
-              </button>
+              <div key={category.id} className="relative group">
+                <button
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedCategory === category.id
+                      ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category.name}
+                  <span className="ml-2 text-xs opacity-75">
+                    ({categoryCounts[category.id] || 0})
+                  </span>
+                </button>
+                {/* Кнопки управления категорией */}
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditCategory(category)
+                    }}
+                    className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-md transition"
+                    title="Редактировать категорию"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteCategory(category.id)
+                    }}
+                    className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition"
+                    title="Удалить категорию"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -150,6 +228,14 @@ export default function ProductsPage() {
             categories={categories}
             onClose={handleCloseForm}
             onSave={handleSave}
+          />
+        )}
+
+        {showCategoryForm && (
+          <CategoryForm
+            category={editingCategory}
+            onClose={handleCloseCategoryForm}
+            onSave={handleSaveCategory}
           />
         )}
 
@@ -581,6 +667,165 @@ function ProductForm({
               />
               <label htmlFor="isActive" className="text-sm font-semibold">
                 Товар активен
+              </label>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {loading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CategoryForm({
+  category,
+  onClose,
+  onSave,
+}: {
+  category: any
+  onClose: () => void
+  onSave: () => void
+}) {
+  const [formData, setFormData] = useState(
+    category || {
+      name: '',
+      slug: '',
+      description: '',
+      isActive: true,
+    }
+  )
+  const [loading, setLoading] = useState(false)
+
+  // Auto-generate slug from name
+  const generateSlug = (name: string) => {
+    // Транслитерация кириллицы
+    const transliterate = (text: string): string => {
+      const map: Record<string, string> = {
+        а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh',
+        з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o',
+        п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts',
+        ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+      }
+      return text
+        .toLowerCase()
+        .split('')
+        .map((char) => map[char] || char)
+        .join('')
+    }
+
+    return transliterate(name)
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+  }
+
+  const handleNameChange = (name: string) => {
+    setFormData({
+      ...formData,
+      name,
+      slug: generateSlug(name),
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const url = category ? `/api/categories/${category.id}` : '/api/categories'
+      const method = category ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to save category')
+      }
+
+      onSave()
+    } catch (error: any) {
+      console.error('Failed to save category:', error)
+      alert(error.message || 'Ошибка при сохранении категории')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-6">
+            {category ? 'Редактировать категорию' : 'Добавить категорию'}
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Название</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                Slug (URL)
+                <span className="text-xs text-gray-500 ml-2">(генерируется автоматически)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg bg-gray-50"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Описание (опционально)</label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="categoryIsActive"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <label htmlFor="categoryIsActive" className="text-sm font-semibold">
+                Категория активна
               </label>
             </div>
 
