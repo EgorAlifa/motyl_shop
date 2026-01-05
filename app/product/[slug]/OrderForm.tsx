@@ -15,7 +15,7 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ product }: OrderFormProps) {
-  const [quantity, setQuantity] = useState(product.minOrder)
+  const [quantity, setQuantity] = useState(product.minOrder.toString())
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +29,8 @@ export function OrderForm({ product }: OrderFormProps) {
     comment: '',
   })
 
-  const totalPrice = quantity * product.price
+  const quantityNum = parseInt(quantity) || 0
+  const totalPrice = quantityNum * product.price
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +46,7 @@ export function OrderForm({ product }: OrderFormProps) {
           items: [
             {
               productId: product.id,
-              quantity,
+              quantity: quantityNum,
             },
           ],
         }),
@@ -113,19 +114,14 @@ export function OrderForm({ product }: OrderFormProps) {
           step={10}
           value={quantity}
           onChange={(e) => {
-            const value = e.target.value
-            // Разрешаем пустое поле или любое число
-            if (value === '') {
-              setQuantity(0)
-            } else {
-              setQuantity(parseInt(value))
-            }
+            // Разрешаем пустое поле для редактирования
+            setQuantity(e.target.value)
           }}
           onBlur={(e) => {
             // При потере фокуса устанавливаем минимальное значение если нужно
             const value = parseInt(e.target.value)
             if (!value || value < product.minOrder) {
-              setQuantity(product.minOrder)
+              setQuantity(product.minOrder.toString())
             }
           }}
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"

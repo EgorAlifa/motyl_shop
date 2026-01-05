@@ -103,52 +103,49 @@ export const GET = withAuth(async (request: NextRequest) => {
       })
     )
 
-    // Daily orders for selected period
-    const dailyOrders = []
+    // Daily orders for selected period - ОПТИМИЗИРОВАНО
+    // Получаем все заказы за период одним запросом
+    const allOrders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        status: true,
+        totalAmount: true,
+      },
+    })
+
+    // Группируем по датам в памяти
+    const dailyOrdersMap = new Map<string, { orders: number; completedOrders: number; revenue: number }>()
+
     for (let i = days - 1; i >= 0; i--) {
       const date = subDays(now, i)
-      const dayStart = startOfDay(date)
-      const dayEnd = endOfDay(date)
-
-      const count = await prisma.order.count({
-        where: {
-          createdAt: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
-        },
-      })
-
-      const completedCount = await prisma.order.count({
-        where: {
-          status: 'DELIVERED',
-          createdAt: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
-        },
-      })
-
-      const dayCompletedOrders = await prisma.order.findMany({
-        where: {
-          status: 'DELIVERED',
-          createdAt: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
-        },
-        select: { totalAmount: true },
-      })
-
-      const revenue = dayCompletedOrders.reduce((sum, order) => sum + order.totalAmount, 0)
-
-      dailyOrders.push({
-        date: date.toISOString().split('T')[0],
-        orders: count,
-        completedOrders: completedCount,
-        revenue,
-      })
+      const dateKey = date.toISOString().split('T')[0]
+      dailyOrdersMap.set(dateKey, { orders: 0, completedOrders: 0, revenue: 0 })
     }
+
+    // Заполняем данные из заказов
+    allOrders.forEach((order) => {
+      const dateKey = order.createdAt.toISOString().split('T')[0]
+      const dayData = dailyOrdersMap.get(dateKey)
+
+      if (dayData) {
+        dayData.orders++
+        if (order.status === 'DELIVERED') {
+          dayData.completedOrders++
+          dayData.revenue += order.totalAmount
+        }
+      }
+    })
+
+    // Преобразуем в массив
+    const dailyOrders = Array.from(dailyOrdersMap.entries()).map(([date, data]) => ({
+      date,
+      ...data,
+    }))
 
     return NextResponse.json({
       totalOrders,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exchangeCodeForTokens, getUserInfo, decodeAccessToken, createSessionToken } from '@/lib/keycloak'
+import { exchangeCodeForTokens, getUserInfo, decodeAccessToken, createSessionToken, getKeycloakAdmin } from '@/lib/keycloak'
 import { cookies } from 'next/headers'
 
 // In-memory cache для предотвращения повторного использования authorization codes
@@ -73,12 +73,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
     }
 
+    // Получаем permissions из атрибутов пользователя в Keycloak
+    let permissions: string[] = []
+    try {
+      const kcAdmin = await getKeycloakAdmin()
+      const kcUser = await kcAdmin.users.findOne({ id: tokenPayload.sub })
+
+      if (kcUser && kcUser.attributes && kcUser.attributes.permissions) {
+        permissions = kcUser.attributes.permissions as string[]
+        console.log('[INFO] User permissions from Keycloak:', permissions)
+      }
+    } catch (error) {
+      console.error('[WARN] Failed to fetch user permissions from Keycloak:', error)
+      // Продолжаем без permissions, super-admin будет иметь полный доступ
+    }
+
     // Создаем JWT токен для нашего приложения
     const sessionToken = await createSessionToken({
       id: tokenPayload.sub,
       email: tokenPayload.email || tokenPayload.preferred_username || '',
       role: isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN',
-      permissions: roles,
+      permissions: permissions,
     })
 
     // Сохраняем токены в cookies
