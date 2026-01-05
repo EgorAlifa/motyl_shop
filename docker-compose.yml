@@ -85,7 +85,7 @@ services:
       - uploads_data:/app/public/uploads
     networks:
       - motyl_network
-    command: sh -c "prisma db push --skip-generate && prisma db seed && node server.js"
+    command: sh -c "prisma migrate deploy && prisma db seed && node server.js"
 
   nginx:
     image: nginx:alpine

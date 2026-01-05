@@ -37,6 +37,3 @@ next-env.d.ts
 /cert/*.crt
 /cert/*.key
 /cert/*.pem
-
-# prisma
-prisma/migrations
