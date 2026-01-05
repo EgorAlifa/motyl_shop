@@ -21,6 +21,9 @@ export const PATCH = withAuth(async (
     const product = await prisma.product.update({
       where: { id: productId },
       data: body,
+      include: {
+        category: true, // Включаем связанную категорию в ответ
+      },
     })
 
     return NextResponse.json(product)

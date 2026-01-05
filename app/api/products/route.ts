@@ -35,7 +35,7 @@ const productSchema = z.object({
   stock: z.number().min(0),
   unit: z.string().default('г'),
   minOrder: z.number().min(1).default(50),
-  category: z.enum(['MOTYL', 'KORETRA', 'ACCESSORIES']),
+  categoryId: z.string(), // Теперь используем ID категории
   storage: z.string().min(1),
   image: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -79,6 +79,9 @@ export const POST = withAuth(async (request: NextRequest) => {
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
+      include: {
+        category: true, // Включаем связанную категорию
+      },
       orderBy: { createdAt: 'desc' },
     })
 
