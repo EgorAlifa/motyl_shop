@@ -7,29 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Product {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String   @db.Text
-  price       Float
-  stock       Int
-  unit        String   @default("г") // грамм
-  minOrder    Int      @default(50)  // минимальный заказ
-  image       String?
-  category    Category @default(MOTYL)
-  storage     String   @db.Text // условия хранения
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique // Название категории
+  slug        String    @unique // URL-friendly идентификатор
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  orderItems  OrderItem[]
+  products    Product[]
 }
 
-enum Category {
-  MOTYL      // Мотыль
-  KORETRA    // Коретра
-  ACCESSORIES // Аксессуары (контейнеры, хранение)
+model Product {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  description String           @db.Text
+  price       Float
+  stock       Int
+  unit        String           @default("г") // грамм
+  minOrder    Int              @default(50)  // минимальный заказ
+  image       String?
+  categoryId  String           // Foreign key
+  category    ProductCategory  @relation(fields: [categoryId], references: [id])
+  storage     String           @db.Text // условия хранения
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  orderItems  OrderItem[]
+
+  @@index([categoryId])
 }
 
 model Order {
