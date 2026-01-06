@@ -74,21 +74,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
     }
 
-    // Получаем permissions из PostgreSQL (единственный источник истины)
+    // Получаем или создаем запись в PostgreSQL (единственный источник истины для permissions)
     let permissions: string[] = []
     try {
       const userEmail = tokenPayload.email || tokenPayload.preferred_username || ''
-      const admin = await prisma.admin.findUnique({
+
+      // Пытаемся найти существующего админа
+      let admin = await prisma.admin.findUnique({
         where: { email: userEmail },
-        select: { permissions: true }
+        select: { permissions: true, role: true }
       })
 
-      if (admin) {
-        permissions = admin.permissions || []
-        console.log('[INFO] User permissions from PostgreSQL:', permissions)
+      // Если админа нет в PostgreSQL, создаем его автоматически
+      if (!admin) {
+        console.log('[INFO] Admin not found in PostgreSQL, creating:', userEmail)
+
+        // Для super-admin даем полные права по умолчанию
+        const defaultPermissions = isSuperAdmin
+          ? ['dashboard', 'products', 'orders']
+          : []
+
+        admin = await prisma.admin.create({
+          data: {
+            email: userEmail,
+            name: tokenPayload.name || tokenPayload.preferred_username || userEmail.split('@')[0],
+            password: '', // Пароль не нужен, используем Keycloak
+            role: isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN',
+            permissions: defaultPermissions,
+            isBlocked: false,
+          },
+          select: { permissions: true, role: true }
+        })
+
+        console.log('[INFO] Created admin in PostgreSQL:', {
+          email: userEmail,
+          role: admin.role,
+          permissions: admin.permissions,
+        })
       }
+
+      permissions = admin.permissions || []
+      console.log('[INFO] User permissions from PostgreSQL:', permissions)
     } catch (error) {
-      console.error('[WARN] Failed to fetch user permissions from PostgreSQL:', error)
+      console.error('[ERROR] Failed to get/create admin in PostgreSQL:', error)
       // Продолжаем без permissions, super-admin будет иметь полный доступ
     }
 
