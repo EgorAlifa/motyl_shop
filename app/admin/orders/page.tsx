@@ -17,9 +17,18 @@ export default function OrdersPage() {
     try {
       const response = await fetch('/api/orders')
       const data = await response.json()
+
+      // Проверяем на 401 или другие ошибки
+      if (!response.ok || !Array.isArray(data)) {
+        console.error('Failed to fetch orders - not authenticated or error:', data)
+        setOrders([])
+        return
+      }
+
       setOrders(data)
     } catch (error) {
       console.error('Failed to fetch orders:', error)
+      setOrders([])
     } finally {
       setLoading(false)
     }

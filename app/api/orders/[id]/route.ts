@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth, AuthUser } from '@/lib/api-auth'
+import { sendOrderStatusUpdateEmail } from '@/lib/email'
+import { orderStatusNames } from '@/lib/utils'
 
 export const PATCH = withAuth(async (
   request: NextRequest,
@@ -37,6 +39,20 @@ export const PATCH = withAuth(async (
         },
       },
     })
+
+    // Отправляем email клиенту о смене статуса
+    try {
+      await sendOrderStatusUpdateEmail({
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        status: order.status,
+        statusName: orderStatusNames[order.status] || order.status,
+      })
+    } catch (emailError) {
+      console.error('Failed to send status update email:', emailError)
+      // Не прерываем выполнение, если письмо не отправилось
+    }
 
     return NextResponse.json(order)
   } catch (error) {

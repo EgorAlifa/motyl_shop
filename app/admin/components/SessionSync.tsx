@@ -12,17 +12,17 @@ export function SessionSync() {
       .then((res) => {
         console.log('[SessionSync] API response status:', res.status)
         if (!res.ok) {
-          console.log('[SessionSync] Not authenticated')
-          // Очищаем sessionStorage если пользователь не авторизован
-          sessionStorage.removeItem('adminData')
+          console.log('[SessionSync] Auth check failed - keeping existing adminData')
+          // НЕ очищаем sessionStorage при 401 - токен может требовать обновления
+          // Пользователь будет перенаправлен на логин при попытке доступа к защищенным ресурсам
           return null
         }
         return res.json()
       })
       .then((data) => {
         if (!data || !data.authenticated) {
-          console.log('[SessionSync] User not authenticated')
-          sessionStorage.removeItem('adminData')
+          console.log('[SessionSync] No auth data received - keeping existing adminData')
+          // НЕ очищаем sessionStorage - пусть middleware решает
           return
         }
 
