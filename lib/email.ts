@@ -3,11 +3,18 @@ import nodemailer from 'nodemailer'
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+  secure: process.env.SMTP_PORT === '465', // true для порта 465 (SSL), false для 587 (STARTTLS)
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
+  tls: {
+    // Для самоподписных сертификатов отключаем проверку
+    rejectUnauthorized: false,
+  },
+  connectionTimeout: 10000, // 10 секунд
+  greetingTimeout: 5000, // 5 секунд
+  socketTimeout: 10000, // 10 секунд
 })
 
 export async function sendOrderEmail(order: {
