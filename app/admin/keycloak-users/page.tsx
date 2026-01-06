@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Users, Plus, Edit, Trash2, Check, X, Shield } from 'lucide-react'
+import EmailSettings from '../components/EmailSettings'
 
 interface KeycloakUser {
   id: string
@@ -111,6 +112,9 @@ export default function KeycloakUsersPage() {
             Добавить пользователя
           </button>
         </div>
+
+        {/* Настройки уведомлений */}
+        <EmailSettings />
 
         {(showCreateForm || editingUser) && (
           <UserForm

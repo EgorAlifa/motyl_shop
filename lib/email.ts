@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { prisma } from './prisma'
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -127,24 +128,97 @@ export async function sendOrderEmail(order: {
     </html>
   `
 
-  // Send to admin
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to: process.env.ADMIN_EMAIL,
-    subject: `Новая заявка #${order.orderNumber} - Магазин мотыля`,
-    html: emailHtml,
-  })
+  // Получаем настройки из БД
+  const settings = await prisma.settings.findFirst()
+  const adminEmail = settings?.notificationEmail || process.env.ADMIN_EMAIL
+  const sendOrderConfirmation = settings?.sendOrderConfirmation ?? true
 
-  // Send confirmation to customer
-  const customerEmailHtml = emailHtml.replace(
-    'Для обработки заявки войдите в админ-панель.',
-    'Мы свяжемся с вами в ближайшее время для подтверждения заказа.'
-  )
+  // Send to admin (если указан email)
+  if (adminEmail) {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: adminEmail,
+      subject: `Новая заявка #${order.orderNumber} - Магазин мотыля`,
+      html: emailHtml,
+    })
+  }
+
+  // Send confirmation to customer (если включено в настройках)
+  if (sendOrderConfirmation) {
+    const customerEmailHtml = emailHtml.replace(
+      'Для обработки заявки войдите в админ-панель.',
+      'Мы свяжемся с вами в ближайшее время для подтверждения заказа.'
+    )
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: order.customerEmail,
+      subject: `Заявка #${order.orderNumber} принята - Магазин мотыля`,
+      html: customerEmailHtml,
+    })
+  }
+}
+
+// Отправка email при смене статуса заявки
+export async function sendOrderStatusUpdateEmail(order: {
+  orderNumber: string
+  customerName: string
+  customerEmail: string
+  status: string
+  statusName: string
+}) {
+  // Получаем настройки из БД
+  const settings = await prisma.settings.findFirst()
+  const sendStatusUpdates = settings?.sendStatusUpdates ?? true
+
+  // Если отправка уведомлений о статусе отключена, выходим
+  if (!sendStatusUpdates) {
+    return
+  }
+
+  const statusMessages: Record<string, string> = {
+    NEW: 'Ваша заявка получена и ожидает обработки.',
+    PROCESSING: 'Ваша заявка находится в обработке.',
+    CONFIRMED: 'Ваша заявка подтверждена! Мы свяжемся с вами для уточнения деталей доставки.',
+    SHIPPED: 'Ваш заказ отправлен! Ожидайте доставку.',
+    DELIVERED: 'Ваш заказ доставлен! Спасибо за покупку!',
+    CANCELLED: 'Ваша заявка отменена. Если у вас есть вопросы, свяжитесь с нами.',
+  }
+
+  const message = statusMessages[order.status] || 'Статус вашей заявки изменён.'
+
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Обновление статуса заявки #${order.orderNumber}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2563eb;">Обновление статуса заявки</h1>
+
+        <div style="margin: 30px 0; padding: 20px; background-color: #f0f9ff; border-left: 4px solid #2563eb; border-radius: 4px;">
+          <p style="margin: 0; font-size: 16px;">Здравствуйте, ${order.customerName}!</p>
+          <p style="margin: 15px 0 0 0; font-size: 16px;">Статус вашей заявки <strong>#${order.orderNumber}</strong> изменён на:</p>
+          <p style="margin: 10px 0 0 0; font-size: 20px; font-weight: bold; color: #2563eb;">${order.statusName}</p>
+        </div>
+
+        <p style="margin: 20px 0; font-size: 16px;">${message}</p>
+
+        <div style="margin-top: 30px; padding: 15px; background-color: #f3f4f6; border-radius: 5px;">
+          <p style="margin: 0;">Это письмо отправлено автоматически из магазина мотыля.</p>
+          <p style="margin: 10px 0 0 0;">Если у вас есть вопросы, пожалуйста, свяжитесь с нами.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: order.customerEmail,
-    subject: `Заявка #${order.orderNumber} принята - Магазин мотыля`,
-    html: customerEmailHtml,
+    subject: `Обновление заявки #${order.orderNumber} - ${order.statusName}`,
+    html: emailHtml,
   })
 }

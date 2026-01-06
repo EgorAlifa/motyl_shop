@@ -98,3 +98,12 @@ enum AdminRole {
   SUPER_ADMIN  // Главный администратор (полный доступ)
   ADMIN        // Обычный администратор (ограниченный доступ)
 }
+
+model Settings {
+  id                    String   @id @default(cuid())
+  notificationEmail     String?  // Email для уведомлений о заявках
+  sendOrderConfirmation Boolean  @default(true) // Отправлять подтверждение клиенту
+  sendStatusUpdates     Boolean  @default(true) // Отправлять уведомления о смене статуса
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
