@@ -6,19 +6,15 @@ export function SessionSync() {
   useEffect(() => {
     console.log('[SessionSync] Component mounted, starting sync...')
 
-    // Проверяем есть ли уже данные в sessionStorage
-    const existing = sessionStorage.getItem('adminData')
-    if (existing) {
-      console.log('[SessionSync] Data already exists in sessionStorage:', existing)
-      return // Already synced
-    }
-
-    // Запрашиваем данные пользователя с сервера (httpOnly cookies недоступны в JS)
+    // Запрашиваем актуальные данные пользователя с сервера
+    // ВСЕГДА обновляем, даже если данные уже есть в sessionStorage
     fetch('/api/auth/me')
       .then((res) => {
         console.log('[SessionSync] API response status:', res.status)
         if (!res.ok) {
           console.log('[SessionSync] Not authenticated')
+          // Очищаем sessionStorage если пользователь не авторизован
+          sessionStorage.removeItem('adminData')
           return null
         }
         return res.json()
@@ -26,25 +22,37 @@ export function SessionSync() {
       .then((data) => {
         if (!data || !data.authenticated) {
           console.log('[SessionSync] User not authenticated')
+          sessionStorage.removeItem('adminData')
           return
         }
 
         console.log('[SessionSync] User data received:', data.user)
 
-        // Сохраняем данные админа в sessionStorage
-        const adminData = {
+        // Проверяем изменились ли данные
+        const existing = sessionStorage.getItem('adminData')
+        const newAdminData = {
           id: data.user.id,
           email: data.user.email,
           role: data.user.role, // SUPER_ADMIN or ADMIN
           permissions: data.user.permissions || [],
         }
 
-        sessionStorage.setItem('adminData', JSON.stringify(adminData))
-        console.log('[SessionSync] Admin data saved to sessionStorage:', adminData)
+        const newAdminDataStr = JSON.stringify(newAdminData)
 
-        // Trigger a storage event to update AdminNav
-        window.dispatchEvent(new Event('storage'))
-        console.log('[SessionSync] Storage event dispatched')
+        // Сохраняем данные админа в sessionStorage
+        sessionStorage.setItem('adminData', newAdminDataStr)
+
+        // Если данные изменились, триггерим событие для обновления навигации
+        if (existing !== newAdminDataStr) {
+          console.log('[SessionSync] Admin data updated, dispatching storage event')
+          console.log('[SessionSync] Old:', existing)
+          console.log('[SessionSync] New:', newAdminDataStr)
+
+          // Trigger a storage event to update AdminNav
+          window.dispatchEvent(new Event('storage'))
+        } else {
+          console.log('[SessionSync] Admin data unchanged')
+        }
       })
       .catch((error) => {
         console.error('[SessionSync] Failed to fetch user data:', error)

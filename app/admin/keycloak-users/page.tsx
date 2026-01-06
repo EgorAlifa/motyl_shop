@@ -316,18 +316,23 @@ function UserForm({
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!user && (
-              <div>
-                <label className="block text-sm font-semibold mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                required={!user}
+                disabled={!!user}
+                title={user ? 'Email нельзя изменить' : ''}
+              />
+              {user && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Email нельзя изменить после создания
+                </p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-semibold mb-2">Имя</label>

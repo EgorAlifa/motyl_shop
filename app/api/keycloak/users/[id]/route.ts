@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { deleteKeycloakUser, updateKeycloakUser, resetKeycloakUserPassword, updateUserRole } from '@/lib/keycloak'
+import { deleteKeycloakUser, updateKeycloakUser, resetKeycloakUserPassword, updateUserRole, getKeycloakAdmin } from '@/lib/keycloak'
 import { withSuperAdmin } from '@/lib/api-auth'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcrypt'
 import { z } from 'zod'
 
 const updateUserSchema = z.object({
@@ -19,11 +21,24 @@ export const DELETE = withSuperAdmin(
     try {
       const { id } = context!.params
 
+      // Получаем email пользователя из Keycloak перед удалением
+      const kcAdmin = await getKeycloakAdmin()
+      const kcUser = await kcAdmin.users.findOne({ id })
+
+      if (kcUser?.email) {
+        // Удаляем запись из PostgreSQL
+        await prisma.admin.deleteMany({
+          where: { email: kcUser.email },
+        })
+        console.log('[INFO] Deleted admin from PostgreSQL:', kcUser.email)
+      }
+
+      // Удаляем пользователя из Keycloak
       await deleteKeycloakUser(id)
 
       return NextResponse.json({
         success: true,
-        message: 'Пользователь успешно удален',
+        message: 'Пользователь успешно удален из Keycloak и PostgreSQL',
       })
     } catch (error: any) {
       console.error('Error deleting Keycloak user:', error)
@@ -43,37 +58,86 @@ export const PATCH = withSuperAdmin(
       const body = await request.json()
       const validatedData = updateUserSchema.parse(body)
 
-      // Если передан пароль, сбрасываем его отдельно
+      // Получаем email пользователя из Keycloak
+      const kcAdmin = await getKeycloakAdmin()
+      const kcUser = await kcAdmin.users.findOne({ id })
+
+      if (!kcUser?.email) {
+        return NextResponse.json(
+          { error: 'Пользователь не найден в Keycloak' },
+          { status: 404 }
+        )
+      }
+
+      // Подготавливаем данные для обновления в PostgreSQL
+      const pgUpdateData: any = {}
+      let passwordToUpdate: string | undefined
+
+      // Если передан пароль, сохраняем для обновления в обеих системах
       if (validatedData.password) {
         await resetKeycloakUserPassword(id, validatedData.password, false)
+        passwordToUpdate = validatedData.password
         delete validatedData.password
       }
 
       // Если передана новая роль, обновляем её
       if (validatedData.role) {
         await updateUserRole(id, validatedData.role)
+        pgUpdateData.role = validatedData.role === 'super_admin' ? 'SUPER_ADMIN' : 'ADMIN'
         delete validatedData.role
       }
 
-      // Если переданы permissions, обновляем attributes
+      // Если передано имя, сохраняем для PostgreSQL
+      if (validatedData.firstName) {
+        pgUpdateData.name = validatedData.firstName
+      }
+
+      // Если переданы permissions, обновляем в обеих системах
       if (validatedData.permissions !== undefined) {
         const attributes: Record<string, string[]> = {
           permissions: validatedData.permissions,
         }
 
-        // Обновляем permissions через attributes
+        // Обновляем permissions через attributes в Keycloak
         await updateKeycloakUser(id, { attributes })
+
+        // Сохраняем permissions для PostgreSQL
+        pgUpdateData.permissions = validatedData.permissions
+
         delete validatedData.permissions
       }
 
-      // Обновляем остальные данные
+      // Если передан статус enabled, обновляем isBlocked в PostgreSQL
+      if (validatedData.enabled !== undefined) {
+        pgUpdateData.isBlocked = !validatedData.enabled
+      }
+
+      // Обновляем остальные данные в Keycloak
       if (Object.keys(validatedData).length > 0) {
         await updateKeycloakUser(id, validatedData)
       }
 
+      // Обновляем пароль в PostgreSQL если был изменен
+      if (passwordToUpdate) {
+        pgUpdateData.password = await bcrypt.hash(passwordToUpdate, 10)
+      }
+
+      // Синхронизируем изменения с PostgreSQL
+      if (Object.keys(pgUpdateData).length > 0) {
+        await prisma.admin.updateMany({
+          where: { email: kcUser.email },
+          data: pgUpdateData,
+        })
+
+        console.log('[INFO] Updated admin in PostgreSQL:', {
+          email: kcUser.email,
+          updates: Object.keys(pgUpdateData),
+        })
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'Пользователь успешно обновлен',
+        message: 'Пользователь успешно обновлен в Keycloak и PostgreSQL',
       })
     } catch (error: any) {
       console.error('Error updating Keycloak user:', error)
