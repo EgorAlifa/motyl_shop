@@ -111,7 +111,7 @@ export function OrderForm({ product }: OrderFormProps) {
         <input
           type="number"
           min={product.minOrder}
-          step={10}
+          step={1}
           value={quantity}
           onChange={(e) => {
             // Разрешаем пустое поле для редактирования
