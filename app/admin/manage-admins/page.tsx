@@ -300,7 +300,6 @@ function AdminForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(admin ? {
           name: formData.name,
-          email: formData.email,
           permissions: formData.permissions,
           ...(formData.password && { password: formData.password })
         } : formData),

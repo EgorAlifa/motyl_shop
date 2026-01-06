@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exchangeCodeForTokens, getUserInfo, decodeAccessToken, createSessionToken, getKeycloakAdmin } from '@/lib/keycloak'
+import { exchangeCodeForTokens, decodeAccessToken, createSessionToken } from '@/lib/keycloak'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
 // In-memory cache для предотвращения повторного использования authorization codes
 // Map<code, timestamp>
@@ -73,18 +74,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/admin/login?error=insufficient_permissions`)
     }
 
-    // Получаем permissions из атрибутов пользователя в Keycloak
+    // Получаем permissions из PostgreSQL (единственный источник истины)
     let permissions: string[] = []
     try {
-      const kcAdmin = await getKeycloakAdmin()
-      const kcUser = await kcAdmin.users.findOne({ id: tokenPayload.sub })
+      const userEmail = tokenPayload.email || tokenPayload.preferred_username || ''
+      const admin = await prisma.admin.findUnique({
+        where: { email: userEmail },
+        select: { permissions: true }
+      })
 
-      if (kcUser && kcUser.attributes && kcUser.attributes.permissions) {
-        permissions = kcUser.attributes.permissions as string[]
-        console.log('[INFO] User permissions from Keycloak:', permissions)
+      if (admin) {
+        permissions = admin.permissions || []
+        console.log('[INFO] User permissions from PostgreSQL:', permissions)
       }
     } catch (error) {
-      console.error('[WARN] Failed to fetch user permissions from Keycloak:', error)
+      console.error('[WARN] Failed to fetch user permissions from PostgreSQL:', error)
       // Продолжаем без permissions, super-admin будет иметь полный доступ
     }
 
