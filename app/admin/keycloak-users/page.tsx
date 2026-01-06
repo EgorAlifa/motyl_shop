@@ -278,6 +278,7 @@ function UserForm({
 
       const body = user
         ? {
+            email: formData.email, // Сохраняем email (для Keycloak)
             firstName: formData.firstName,
             lastName: formData.lastName,
             role: formData.role,

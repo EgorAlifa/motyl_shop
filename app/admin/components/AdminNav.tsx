@@ -25,10 +25,15 @@ export function AdminNav() {
     // Функция для обновления роли и permissions из sessionStorage
     const updateRole = () => {
       const adminData = sessionStorage.getItem('adminData')
+      console.log('[AdminNav] Updating role from sessionStorage:', adminData)
       if (adminData) {
         const data = JSON.parse(adminData)
+        console.log('[AdminNav] Parsed admin data:', data)
         setAdminRole(data.role)
         setAdminPermissions(data.permissions || [])
+        console.log('[AdminNav] Set role:', data.role, 'permissions:', data.permissions || [])
+      } else {
+        console.log('[AdminNav] No adminData in sessionStorage')
       }
     }
 
@@ -86,8 +91,12 @@ export function AdminNav() {
       return true
     }
     // Обычный Admin видит только разрешенные разделы
-    return adminPermissions.includes(link.permission)
+    const hasPermission = adminPermissions.includes(link.permission)
+    console.log(`[AdminNav] Checking permission for ${link.label}: ${link.permission}, has: ${hasPermission}`)
+    return hasPermission
   })
+
+  console.log('[AdminNav] Filtered links count:', filteredLinks.length, 'Role:', adminRole, 'Permissions:', adminPermissions)
 
   return (
     <>

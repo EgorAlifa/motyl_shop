@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withSuperAdmin, AuthUser } from '@/lib/api-auth'
-import { getKeycloakAdmin, createSessionToken, resetKeycloakUserPassword } from '@/lib/keycloak'
+import { getKeycloakAdmin, createSessionToken, resetKeycloakUserPassword, updateKeycloakUser, updateUserRole, deleteKeycloakUser } from '@/lib/keycloak'
 import bcrypt from 'bcrypt'
 
 // Обновить админа
@@ -99,8 +99,17 @@ export const PATCH = withSuperAdmin(async (
       await resetKeycloakUserPassword(kcUserId, password, false)
     }
 
+    // Синхронизируем permissions с Keycloak attributes
+    if (permissions !== undefined) {
+      await updateKeycloakUser(kcUserId, {
+        attributes: {
+          permissions: permissions,
+        },
+      })
+      console.log('[INFO] Updated permissions in Keycloak:', permissions)
+    }
+
     // Подготавливаем данные для обновления в PostgreSQL
-    // Permissions хранятся только в PostgreSQL
     const updateData: any = {}
 
     if (name !== undefined) updateData.name = name
@@ -204,13 +213,32 @@ export const DELETE = withSuperAdmin(async (
       )
     }
 
-    // Удаляем админа
+    // Удаляем из Keycloak
+    try {
+      const kcAdmin = await getKeycloakAdmin()
+      const kcUsers = await kcAdmin.users.find({
+        email: targetAdmin.email,
+        exact: true,
+      })
+
+      if (kcUsers && kcUsers.length > 0 && kcUsers[0].id) {
+        await deleteKeycloakUser(kcUsers[0].id)
+        console.log('[INFO] Deleted admin from Keycloak:', targetAdmin.email)
+      }
+    } catch (kcError) {
+      console.error('[ERROR] Failed to delete admin from Keycloak:', kcError)
+      // Продолжаем удаление из PostgreSQL даже если не удалось удалить из Keycloak
+    }
+
+    // Удаляем админа из PostgreSQL
     await prisma.admin.delete({
       where: { id: targetId },
     })
 
+    console.log('[INFO] Deleted admin from PostgreSQL:', targetAdmin.email)
+
     return NextResponse.json({
-      message: 'Администратор успешно удален',
+      message: 'Администратор успешно удален из Keycloak и PostgreSQL',
     })
   } catch (error) {
     console.error('Error deleting admin:', error)
